@@ -39,6 +39,12 @@ const INITIAL_SHIPMENTS: Shipment[] = [
     estimatedArrival: '2026-06-28T18:00:00Z',
     createdAt: '2026-06-10T10:00:00Z',
     updatedAt: '2026-06-15T14:30:00Z',
+    assignedPortAuthorityName: 'Manila Port Authority',
+    assignedCustomsBrokerName: 'Vanguard Brokerage Manila',
+    assignedCarrierName: 'Evergreen Shipping Line',
+    assignedWarehouseName: 'Shenzhen Logistics Hub',
+    assignedTruckerName: 'PH Express Trucking',
+    assignedInspectorName: 'SGS Inspection Services',
     milestones: [
       {
         id: 'ms-1-1',
@@ -135,6 +141,12 @@ const INITIAL_SHIPMENTS: Shipment[] = [
     estimatedArrival: '2026-06-18T10:00:00Z',
     createdAt: '2026-06-05T08:00:00Z',
     updatedAt: '2026-06-18T16:45:00Z',
+    assignedPortAuthorityName: 'Port Authority of Cebu',
+    assignedCustomsBrokerName: 'Pascual & Partners Brokerage',
+    assignedCarrierName: 'SITC Shipping Vietnam',
+    assignedWarehouseName: 'Mekong Whse 4A',
+    assignedTruckerName: 'Visayas Haulers',
+    assignedInspectorName: 'Veritas Marine Inspector',
     milestones: [
       {
         id: 'ms-2-1',
@@ -230,6 +242,12 @@ const INITIAL_SHIPMENTS: Shipment[] = [
     estimatedArrival: '2026-06-12T08:00:00Z',
     createdAt: '2026-05-28T09:00:00Z',
     updatedAt: '2026-06-12T16:00:00Z',
+    assignedPortAuthorityName: 'Davao Sasa Port Authority',
+    assignedCustomsBrokerName: 'Mindanao Customs Brokerage',
+    assignedCarrierName: 'Wan Hai Lines',
+    assignedWarehouseName: 'Davao Cold Storage',
+    assignedTruckerName: 'Davao Trucking Pros',
+    assignedInspectorName: 'SGS Davao Inspection',
     milestones: [
       {
         id: 'ms-3-1',

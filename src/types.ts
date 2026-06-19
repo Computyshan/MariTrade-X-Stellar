@@ -131,4 +131,10 @@ export type Shipment = {
   updatedAt: string;
   milestones: MilestoneEvent[];
   documents: ShipmentDocument[];
+  assignedPortAuthorityName?: string;
+  assignedCustomsBrokerName?: string;
+  assignedCarrierName?: string;
+  assignedWarehouseName?: string;
+  assignedTruckerName?: string;
+  assignedInspectorName?: string;
 };

@@ -94,12 +94,27 @@ export default function Auth({ initialView, onNavigate, onLoginSuccess }: AuthPr
     if (selectedRole === UserRole.IMPORTER) {
       setCompanyName('Luzon Agro Trading');
       setFullName('Lito Macati');
+    } else if (selectedRole === UserRole.EXPORTER) {
+      setCompanyName('Vietnam Rice Exports Ltd');
+      setFullName('Nguyen Van Minh');
     } else if (selectedRole === UserRole.FREIGHT_FORWARDER) {
-      setCompanyName('South Seas Forwarders Inc.');
+      setCompanyName('SGS Inspection Services');
       setFullName('Carlos Delgado');
     } else if (selectedRole === UserRole.CUSTOMS_BROKER) {
       setCompanyName('Vanguard Brokerage Manila');
       setFullName('Atty. Maria Santos');
+    } else if (selectedRole === UserRole.SHIPPING_LINE) {
+      setCompanyName('Evergreen Shipping Line');
+      setFullName('Captain Lawrence');
+    } else if (selectedRole === UserRole.WAREHOUSE) {
+      setCompanyName('Shenzhen Logistics Hub');
+      setFullName('Robert Chen');
+    } else if (selectedRole === UserRole.PORT_AUTHORITY) {
+      setCompanyName('Manila Port Authority');
+      setFullName('Director Arnaldo');
+    } else if (selectedRole === UserRole.TRUCKER) {
+      setCompanyName('PH Express Trucking');
+      setFullName('Driver Danilo');
     }
   };
 
@@ -182,8 +197,8 @@ export default function Auth({ initialView, onNavigate, onLoginSuccess }: AuthPr
 
             {/* Quick Presets */}
             <div className="border-t border-[#E5E3DA] pt-4 mt-4">
-              <span className="block text-[10px] uppercase font-mono text-center text-slate-400 font-bold mb-2">PROMPTS QUICK LOGIN PRESETS</span>
-              <div className="flex flex-col gap-1">
+              <span className="block text-[10px] uppercase font-mono text-center text-slate-400 font-bold mb-3">Instant Demo Account Presets</span>
+              <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -193,10 +208,115 @@ export default function Auth({ initialView, onNavigate, onLoginSuccess }: AuthPr
                     setFullName('Tyshaun Louis Siga');
                     setRole(UserRole.IMPORTER);
                   }}
-                  className="w-full py-1.5 px-3 rounded bg-[#FAFAF7] hover:bg-[#EEF4FF] border border-[#E5E3DA] text-left text-xs text-slate-700 font-medium flex justify-between"
+                  className="p-2 rounded bg-[#FAFAF7] hover:bg-[#EEF4FF] border border-[#E5E3DA] text-left text-[11px] text-slate-700 font-medium flex flex-col justify-between transition"
                 >
-                  <span>🔑 Demoreader Importer Acc.</span>
-                  <span className="text-[9px] uppercase font-mono tracking-wider text-[#1A66FF] font-bold">Philippines SME</span>
+                  <span className="font-bold text-slate-800">Importer (SME)</span>
+                  <span className="text-[9px] text-[#1A66FF] font-semibold">tyshaunlouissiga@gmail.com</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('vietnam.rice@exports.vn');
+                    setPassword('maritrade2026');
+                    setCompanyName('Vietnam Rice Exports Ltd');
+                    setFullName('Nguyen Van Minh');
+                    setRole(UserRole.EXPORTER);
+                  }}
+                  className="p-2 rounded bg-[#FAFAF7] hover:bg-[#EEF4FF] border border-[#E5E3DA] text-left text-[11px] text-slate-700 font-medium flex flex-col justify-between transition"
+                >
+                  <span className="font-bold text-slate-800">Exporter (Seller)</span>
+                  <span className="text-[9px] text-emerald-600 font-semibold">vietnam.rice@exports.vn</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('manila.port@gov.ph');
+                    setPassword('maritrade2026');
+                    setCompanyName('Manila Port Authority');
+                    setFullName('Director Arnaldo');
+                    setRole(UserRole.PORT_AUTHORITY);
+                  }}
+                  className="p-2 rounded bg-[#FAFAF7] hover:bg-[#EEF4FF] border border-[#E5E3DA] text-left text-[11px] text-slate-700 font-medium flex flex-col justify-between transition"
+                >
+                  <span className="font-bold text-slate-800">Port Authority</span>
+                  <span className="text-[9px] text-sky-600 font-semibold">manila.port@gov.ph</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('vanguard.brokerage@manila.ph');
+                    setPassword('maritrade2026');
+                    setCompanyName('Vanguard Brokerage Manila');
+                    setFullName('Atty. Maria Santos');
+                    setRole(UserRole.CUSTOMS_BROKER);
+                  }}
+                  className="p-2 rounded bg-[#FAFAF7] hover:bg-[#EEF4FF] border border-[#E5E3DA] text-left text-[11px] text-slate-700 font-medium flex flex-col justify-between transition"
+                >
+                  <span className="font-bold text-slate-800">Customs Broker</span>
+                  <span className="text-[9px] text-orange-600 font-semibold">vanguard.brokerage@manila...</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('evergreen.agent@oceanlines.com');
+                    setPassword('maritrade2026');
+                    setCompanyName('Evergreen Shipping Line');
+                    setFullName('Captain Lawrence');
+                    setRole(UserRole.SHIPPING_LINE);
+                  }}
+                  className="p-2 rounded bg-[#FAFAF7] hover:bg-[#EEF4FF] border border-[#E5E3DA] text-left text-[11px] text-slate-700 font-medium flex flex-col justify-between transition"
+                >
+                  <span className="font-bold text-slate-800">Shipping Line</span>
+                  <span className="text-[9px] text-purple-600 font-semibold">evergreen.agent@ocean...</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('shenzhen.hub@logistics.com');
+                    setPassword('maritrade2026');
+                    setCompanyName('Shenzhen Logistics Hub');
+                    setFullName('Robert Chen');
+                    setRole(UserRole.WAREHOUSE);
+                  }}
+                  className="p-2 rounded bg-[#FAFAF7] hover:bg-[#EEF4FF] border border-[#E5E3DA] text-left text-[11px] text-slate-700 font-medium flex flex-col justify-between transition"
+                >
+                  <span className="font-bold text-slate-800">Warehouse Yard</span>
+                  <span className="text-[9px] text-teal-600 font-semibold">shenzhen.hub@logistics.com</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('ph.express.trucking@courier.ph');
+                    setPassword('maritrade2026');
+                    setCompanyName('PH Express Trucking');
+                    setFullName('Driver Danilo');
+                    setRole(UserRole.TRUCKER);
+                  }}
+                  className="p-2 rounded bg-[#FAFAF7] hover:bg-[#EEF4FF] border border-[#E5E3DA] text-left text-[11px] text-slate-700 font-medium flex flex-col justify-between transition"
+                >
+                  <span className="font-bold text-slate-800">Local Trucker</span>
+                  <span className="text-[9px] text-red-500 font-semibold">ph.express.trucking@couri...</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('sgs.auditor@inspections.com');
+                    setPassword('maritrade2026');
+                    setCompanyName('SGS Inspection Services');
+                    setFullName('Carlos Delgado');
+                    setRole(UserRole.FREIGHT_FORWARDER);
+                  }}
+                  className="p-2 rounded bg-[#FAFAF7] hover:bg-[#EEF4FF] border border-[#E5E3DA] text-left text-[11px] text-slate-700 font-medium flex flex-col justify-between transition"
+                >
+                  <span className="font-bold text-slate-800">Cargo Inspector</span>
+                  <span className="text-[9px] text-indigo-600 font-semibold">sgs.auditor@inspections...</span>
                 </button>
               </div>
             </div>
@@ -272,10 +392,11 @@ export default function Auth({ initialView, onNavigate, onLoginSuccess }: AuthPr
                 >
                   <option value={UserRole.IMPORTER}>Importer (SME Buyer)</option>
                   <option value={UserRole.EXPORTER}>Exporter (International Seller)</option>
-                  <option value={UserRole.FREIGHT_FORWARDER}>Freight Forwarder (Logistics)</option>
+                  <option value={UserRole.FREIGHT_FORWARDER}>Cargo Inspector / Underwriter</option>
                   <option value={UserRole.CUSTOMS_BROKER}>Customs Broker</option>
                   <option value={UserRole.SHIPPING_LINE}>Shipping Line Operator</option>
                   <option value={UserRole.WAREHOUSE}>Warehouse Management</option>
+                  <option value={UserRole.PORT_AUTHORITY}>Government Port Authority</option>
                   <option value={UserRole.TRUCKER}>Local Trucker Logistical</option>
                 </select>
               </div>

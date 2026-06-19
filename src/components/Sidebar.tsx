@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { User } from '../types';
+import { User, UserRole } from '../types';
 import { 
   LayoutDashboard, 
   Ship, 
@@ -25,14 +25,39 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ user, activeTab, onNavigateTab, onLogout }: SidebarProps) {
-  const navItems = [
-    { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-    { id: 'shipments', label: 'My Shipments', icon: Ship },
-    { id: 'documents', label: 'BOC Documents', icon: FileText },
-    { id: 'payments', label: 'Stellar Payments', icon: Wallet },
-    { id: 'assistance', label: 'BOC AI Broker', icon: Sparkles, tag: 'AI' },
-    { id: 'public-track', label: 'Public Explorer', icon: MapPin }
-  ];
+  const getNavItems = () => {
+    const role = user?.role;
+    const isTradeParty = role === UserRole.IMPORTER || role === UserRole.EXPORTER;
+
+    const items: { id: string; label: string; icon: any; tag?: string; }[] = [
+      { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
+      { id: 'shipments', label: 'My Shipments', icon: Ship }
+    ];
+
+    // Documents Access: Customs Broker, Carrier, Warehouse, and Inspector/Insurer (mapped as FREIGHT_FORWARDER)
+    const hasDocAccess = isTradeParty || 
+      role === UserRole.CUSTOMS_BROKER || 
+      role === UserRole.SHIPPING_LINE || 
+      role === UserRole.WAREHOUSE || 
+      role === UserRole.FREIGHT_FORWARDER;
+
+    if (hasDocAccess) {
+      items.push({ id: 'documents', label: 'BOC Documents', icon: FileText });
+    }
+
+    // Payments Access: Only Exporter and Importer
+    if (isTradeParty) {
+      items.push({ id: 'payments', label: 'Stellar Payments', icon: Wallet });
+    }
+
+    // AI Broker and Public tracking
+    items.push({ id: 'assistance', label: 'BOC AI Broker', icon: Sparkles, tag: 'AI' });
+    items.push({ id: 'public-track', label: 'Public Explorer', icon: MapPin });
+
+    return items;
+  };
+
+  const navItems = getNavItems();
 
   return (
     <aside id="dashboard-sidebar" className="w-80 bg-[#001240] text-slate-100 flex flex-col justify-between shrink-0 select-none border-r border-[#001240]/10">

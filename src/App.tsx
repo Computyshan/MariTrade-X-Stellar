@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { User, Shipment } from './types';
+import { User, Shipment, UserRole } from './types';
 import { getStoredUser, getStoredShipments, saveStoredUser } from './utils/storage';
 
 // Component imports
@@ -109,6 +109,24 @@ export default function App() {
     }
   };
 
+  const allowedShipmentsForUser = React.useMemo(() => {
+    if (!user) return shipments;
+    if (user.role === UserRole.IMPORTER || user.role === UserRole.EXPORTER || user.role === UserRole.ADMIN) {
+      return shipments;
+    }
+    // Logistics chain constraints: scope strictly to assigned shipments
+    return shipments.filter(s => {
+      const role = user.role;
+      if (role === UserRole.PORT_AUTHORITY) return s.assignedPortAuthorityName !== undefined;
+      if (role === UserRole.CUSTOMS_BROKER) return s.assignedCustomsBrokerName !== undefined;
+      if (role === UserRole.SHIPPING_LINE) return s.assignedCarrierName !== undefined;
+      if (role === UserRole.WAREHOUSE) return s.assignedWarehouseName !== undefined;
+      if (role === UserRole.TRUCKER) return s.assignedTruckerName !== undefined;
+      if (role === UserRole.FREIGHT_FORWARDER) return s.assignedInspectorName !== undefined;
+      return false;
+    });
+  }, [shipments, user]);
+
   const handleViewShipmentDetail = (id: string) => {
     setActiveShipmentId(id);
     setActiveTab('shipments-detail');
@@ -187,17 +205,21 @@ export default function App() {
           <div className="flex-1 flex flex-col min-w-0 bg-[#FAFAF7]">
             {activeTab === 'dashboard' && (
               <DashboardHome 
-                shipments={shipments} 
+                shipments={allowedShipmentsForUser} 
+                user={user}
                 onViewShipment={handleViewShipmentDetail}
                 onNavigateTab={handleNavigateTab}
+                onUpdate={reloadData}
               />
             )}
 
             {activeTab === 'shipments' && (
               <DashboardHome 
-                shipments={shipments} 
+                shipments={allowedShipmentsForUser} 
+                user={user}
                 onViewShipment={handleViewShipmentDetail}
                 onNavigateTab={handleNavigateTab}
+                onUpdate={reloadData}
               />
             )}
 
@@ -221,12 +243,12 @@ export default function App() {
             )}
 
             {activeTab === 'documents' && (
-              <DocumentsTab shipments={shipments} />
+              <DocumentsTab shipments={allowedShipmentsForUser} />
             )}
 
             {activeTab === 'payments' && (
               <PaymentsTab 
-                shipments={shipments} 
+                shipments={allowedShipmentsForUser} 
                 user={user}
                 onViewShipment={handleViewShipmentDetail} 
               />

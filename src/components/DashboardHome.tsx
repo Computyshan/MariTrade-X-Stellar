@@ -4,16 +4,26 @@
  */
 
 import React from 'react';
-import { Shipment, ShipmentStatus, EscrowStatus, UserRole } from '../types';
+import { Shipment, ShipmentStatus, EscrowStatus, UserRole, User } from '../types';
 import { Ship, ShieldAlert, CheckCircle2, Clock, MapPin, ArrowRight, Anchor, FileWarning } from 'lucide-react';
+import { 
+  PortAuthorityDashboard, 
+  CustomsBrokerDashboard, 
+  CarrierDashboard, 
+  WarehouseDashboard, 
+  TruckerDashboard, 
+  InspectorDashboard 
+} from './LogisticsDashboards';
 
 interface DashboardHomeProps {
   shipments: Shipment[];
+  user: User | null;
   onViewShipment: (id: string) => void;
   onNavigateTab: (tab: string) => void;
+  onUpdate: () => void;
 }
 
-export default function DashboardHome({ shipments, onViewShipment, onNavigateTab }: DashboardHomeProps) {
+export default function DashboardHome({ shipments, user, onViewShipment, onNavigateTab, onUpdate }: DashboardHomeProps) {
   
   // Calculate stats
   const activeShipments = shipments.filter(s => 
@@ -87,6 +97,75 @@ export default function DashboardHome({ shipments, onViewShipment, onNavigateTab
     }
   };
 
+  if (user) {
+    if (user.role === UserRole.PORT_AUTHORITY) {
+      return (
+        <div id="dashboard-home" className="space-y-8 animate-fade-in p-8 bg-[#FAFAF7] flex-1 overflow-y-auto">
+          <div>
+            <h1 className="text-2xl font-bold text-[#001240] tracking-tight">Portside Authority Terminal Control</h1>
+            <p className="text-xs text-slate-500 mt-1">Hello, {user.fullName}. Logging port arrivals & vessel departures.</p>
+          </div>
+          <PortAuthorityDashboard shipments={shipments} user={user} onViewShipment={onViewShipment} onUpdate={onUpdate} />
+        </div>
+      );
+    }
+    if (user.role === UserRole.CUSTOMS_BROKER) {
+      return (
+        <div id="dashboard-home" className="space-y-8 animate-fade-in p-8 bg-[#FAFAF7] flex-1 overflow-y-auto">
+          <div>
+            <h1 className="text-2xl font-bold text-[#001240] tracking-tight">Consignment Customs Brokerage Control</h1>
+            <p className="text-xs text-slate-500 mt-1">Hello, {user.fullName}. Reviewing import documents & logging Bureau of Customs clearances.</p>
+          </div>
+          <CustomsBrokerDashboard shipments={shipments} user={user} onViewShipment={onViewShipment} onUpdate={onUpdate} />
+        </div>
+      );
+    }
+    if (user.role === UserRole.SHIPPING_LINE) {
+      return (
+        <div id="dashboard-home" className="space-y-8 animate-fade-in p-8 bg-[#FAFAF7] flex-1 overflow-y-auto">
+          <div>
+            <h1 className="text-2xl font-bold text-[#001240] tracking-tight">Ocean Carrier Operations Control</h1>
+            <p className="text-xs text-slate-500 mt-1">Hello, {user.fullName}. Publish maritime logs & vessel voyage tracking live updates.</p>
+          </div>
+          <CarrierDashboard shipments={shipments} user={user} onViewShipment={onViewShipment} onUpdate={onUpdate} />
+        </div>
+      );
+    }
+    if (user.role === UserRole.WAREHOUSE) {
+      return (
+        <div id="dashboard-home" className="space-y-8 animate-fade-in p-8 bg-[#FAFAF7] flex-1 overflow-y-auto">
+          <div>
+            <h1 className="text-2xl font-bold text-[#001240] tracking-tight">Dock Storage Terminal Yard Control</h1>
+            <p className="text-xs text-slate-500 mt-1">Hello, {user.fullName}. Manage container yard staging & demurrage storage clocks.</p>
+          </div>
+          <WarehouseDashboard shipments={shipments} user={user} onViewShipment={onViewShipment} onUpdate={onUpdate} />
+        </div>
+      );
+    }
+    if (user.role === UserRole.TRUCKER) {
+      return (
+        <div id="dashboard-home" className="space-y-8 animate-fade-in p-8 bg-[#FAFAF7] flex-1 overflow-y-auto">
+          <div>
+            <h1 className="text-2xl font-bold text-[#001240] tracking-tight">Intermodal Trucking Dispatch Fleet</h1>
+            <p className="text-xs text-slate-500 mt-1">Hello, {user.fullName}. Transport container dispatches & secure final consignee delivery confirmations.</p>
+          </div>
+          <TruckerDashboard shipments={shipments} user={user} onViewShipment={onViewShipment} onUpdate={onUpdate} />
+        </div>
+      );
+    }
+    if (user.role === UserRole.FREIGHT_FORWARDER) {
+      return (
+        <div id="dashboard-home" className="space-y-8 animate-fade-in p-8 bg-[#FAFAF7] flex-1 overflow-y-auto">
+          <div>
+            <h1 className="text-2xl font-bold text-[#001240] tracking-tight">Cargo Inspection & Underwriting</h1>
+            <p className="text-xs text-slate-500 mt-1">Hello, {user.fullName}. Submit quality inspection certificates & flag transit discrepancies.</p>
+          </div>
+          <InspectorDashboard shipments={shipments} user={user} onViewShipment={onViewShipment} onUpdate={onUpdate} />
+        </div>
+      );
+    }
+  }
+
   return (
     <div id="dashboard-home" className="space-y-8 animate-fade-in p-8 bg-[#FAFAF7] flex-1 overflow-y-auto">
       
@@ -94,7 +173,10 @@ export default function DashboardHome({ shipments, onViewShipment, onNavigateTab
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-[#001240] tracking-tight">Vessel Operations Command</h1>
-          <p className="text-xs md:text-sm text-slate-500 mt-1">Hello, Tyshaun Louis Siga. Track Philippine import customs clearances & Stellar multisig payouts.</p>
+          <p className="text-xs md:text-sm text-slate-500 mt-1">
+            Hello, {user?.fullName || 'Tyshaun Louis Siga'} ({user?.companyName || 'Luzon General Merchandising'}). 
+            Track {user?.role === UserRole.EXPORTER ? 'customer-funded Stellar escrows & export tracking logs' : 'Philippine import customs clearances & Stellar multisig payouts'}.
+          </p>
         </div>
         <button
           id="btn-create-shipment-dash"
