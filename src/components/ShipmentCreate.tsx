@@ -390,6 +390,27 @@ export default function ShipmentCreate({ onShipmentCreated, onCancel }: Shipment
                 <span className="text-slate-500 uppercase font-mono">Target Logistics ETA:</span>
                 <strong className="font-mono text-slate-800">{estimatedArrival}</strong>
               </div>
+              <div className="border-t border-[#E5E3DA] pt-2.5 mt-2.5 space-y-2">
+                <span className="block text-slate-400 font-mono text-[10px] uppercase font-bold tracking-wider">Assigned Logistics Chain:</span>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                  <div>
+                    <span className="text-slate-400 font-mono block text-[9px] uppercase">Ocean Vessel:</span>
+                    <strong className="text-slate-700">Evergreen Shipping Line</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-mono block text-[9px] uppercase">Customs Broker:</span>
+                    <strong className="text-slate-700 font-semibold">Vanguard Brokerage Manila</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-mono block text-[9px] uppercase">Staging Yard:</span>
+                    <strong className="text-slate-700">Shenzhen Logistics Hub</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-mono block text-[9px] uppercase">Road Fleet Trucker:</span>
+                    <strong className="text-slate-700">PH Express Trucking</strong>
+                  </div>
+                </div>
+              </div>
               <div className="border-t border-[#E5E3DA] pt-2 mt-2">
                 <span className="block text-slate-400 font-mono text-[10px]">ATTACHED PAPERS LOGS:</span>
                 <ul className="list-disc pl-4 mt-1 space-y-1 text-[11px] font-medium text-[#078384] font-mono">

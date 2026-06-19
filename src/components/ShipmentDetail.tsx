@@ -8,7 +8,8 @@ import { Shipment, ShipmentStatus, EscrowStatus, MilestoneType, DocumentType, Us
 import { 
   logMilestoneInStorage, 
   uploadDocumentInStorage, 
-  updateShipmentInStorage 
+  updateShipmentInStorage,
+  canLogMilestone
 } from '../utils/storage';
 import { 
   Ship, 
@@ -69,6 +70,28 @@ export default function ShipmentDetail({ shipmentId, user, onBack, onUpdate }: S
       }
     }
   }, [shipmentId]);
+
+  // Automatically point to the next milestone that needs logging
+  React.useEffect(() => {
+    if (activeShipment) {
+      const sequence = [
+        MilestoneType.BOOKING_CONFIRMED,
+        MilestoneType.CARGO_RECEIVED_WAREHOUSE,
+        MilestoneType.CARGO_PACKED_READY,
+        MilestoneType.VESSEL_DEPARTED,
+        MilestoneType.CONTAINER_LOADED,
+        MilestoneType.VESSEL_ARRIVED_DESTINATION,
+        MilestoneType.CUSTOMS_ENTRY_FILED,
+        MilestoneType.CUSTOMS_CLEARED,
+        MilestoneType.CARGO_PICKED_UP,
+        MilestoneType.DELIVERED
+      ];
+      const nextMilestone = sequence.find(
+        m => !activeShipment.milestones.some(logged => logged.type === m)
+      ) || MilestoneType.BOOKING_CONFIRMED;
+      setNewMilestoneType(nextMilestone);
+    }
+  }, [activeShipment?.milestones?.length, shipmentId]);
 
   if (!activeShipment) {
     return (
@@ -146,6 +169,12 @@ export default function ShipmentDetail({ shipmentId, user, onBack, onUpdate }: S
     e.preventDefault();
     if (!newMilestoneDesc.trim()) {
       triggerToast('Please type a descriptive log for this milestone event.', true);
+      return;
+    }
+
+    const check = canLogMilestone(activeShipment, newMilestoneType);
+    if (!check.allowed && check.reason) {
+      triggerToast(check.reason, true);
       return;
     }
 
@@ -495,23 +524,31 @@ export default function ShipmentDetail({ shipmentId, user, onBack, onUpdate }: S
               {/* Action buttons depending on client roles and status */}
               <div className="space-y-3.5 pt-3">
                 {activeShipment.escrowStatus === EscrowStatus.UNFUNDED && (
-                  <button
-                    id="btn-trigger-fund-escrow"
-                    onClick={handleFundEscrow}
-                    disabled={fundingEscrow}
-                    className="w-full py-3 rounded-lg bg-[#1A66FF] hover:bg-[#0047E0] disabled:bg-slate-300 text-white font-bold text-sm transition shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2 cursor-pointer animate-pulse"
-                  >
-                    {fundingEscrow ? (
-                      <>
-                        <Loader2 className="animate-spin" size={16} />
-                        <span>Generating Stellar payload...</span>
-                      </>
+                  <div>
+                    {user?.role === UserRole.IMPORTER ? (
+                      <button
+                        id="btn-trigger-fund-escrow"
+                        onClick={handleFundEscrow}
+                        disabled={fundingEscrow}
+                        className="w-full py-3 rounded-lg bg-[#1A66FF] hover:bg-[#0047E0] disabled:bg-slate-300 text-white font-bold text-sm transition shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2 cursor-pointer animate-pulse"
+                      >
+                        {fundingEscrow ? (
+                          <>
+                            <Loader2 className="animate-spin" size={16} />
+                            <span>Generating Stellar payload...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Fund Safe Escrow Ledger</span>
+                          </>
+                        )}
+                      </button>
                     ) : (
-                      <>
-                        <span>Fund Safe Escrow Ledger</span>
-                      </>
+                      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 font-medium text-center italic">
+                        🔴 Awaiting Importer to deposit and fund the safety Stellar pool.
+                      </div>
                     )}
-                  </button>
+                  </div>
                 )}
 
                 {activeShipment.escrowStatus === EscrowStatus.FUNDED && (
@@ -521,28 +558,34 @@ export default function ShipmentDetail({ shipmentId, user, onBack, onUpdate }: S
                     </div>
                     
                     {/* Importer role release tool */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        id="btn-dispute-escrow"
-                        onClick={handleDisputeEscrow}
-                        disabled={disputingEscrow}
-                        className="py-2.5 rounded-lg border border-[#FF5C35]/30 hover:bg-[#FFF2EE] text-[#CC3A1C] text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        File Dispute
-                      </button>
-                      <button
-                        id="btn-release-escrow"
-                        onClick={handleReleaseEscrow}
-                        disabled={releasingEscrow}
-                        className="py-2.5 rounded-lg bg-[#0BAFB0] hover:bg-[#078384] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-teal-500/10"
-                      >
-                        {releasingEscrow ? (
-                          <Loader2 className="animate-spin" size={14} />
-                        ) : (
-                          <span>Release Payments ✓</span>
-                        )}
-                      </button>
-                    </div>
+                    {user?.role === UserRole.IMPORTER || user?.role === UserRole.EXPORTER ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          id="btn-dispute-escrow"
+                          onClick={handleDisputeEscrow}
+                          disabled={disputingEscrow}
+                          className="py-2.5 rounded-lg border border-[#FF5C35]/30 hover:bg-[#FFF2EE] text-[#CC3A1C] text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          File Dispute
+                        </button>
+                        <button
+                          id="btn-release-escrow"
+                          onClick={handleReleaseEscrow}
+                          disabled={releasingEscrow}
+                          className="py-2.5 rounded-lg bg-[#0BAFB0] hover:bg-[#078384] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-teal-500/10"
+                        >
+                          {releasingEscrow ? (
+                            <Loader2 className="animate-spin" size={14} />
+                          ) : (
+                            <span>Release Payments ✓</span>
+                          )}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 font-medium text-center italic">
+                        Only Trade Parties (Importer/Exporter) have permissions to file disputes or release payments.
+                      </div>
+                    )}
                   </div>
                 )}
 

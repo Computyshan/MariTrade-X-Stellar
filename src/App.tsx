@@ -105,9 +105,26 @@ export default function App() {
 
   const allowedShipmentsForUser = React.useMemo(() => {
     if (!user) return shipments;
-    if (user.role === UserRole.IMPORTER || user.role === UserRole.EXPORTER || user.role === UserRole.ADMIN) {
+    if (user.role === UserRole.ADMIN) {
       return shipments;
     }
+    
+    // Trade Party: Importer - only their own shipments
+    if (user.role === UserRole.IMPORTER) {
+      return shipments.filter(s => 
+        s.importerId === user.id || 
+        s.importerName.toLowerCase() === user.companyName.toLowerCase()
+      );
+    }
+    
+    // Trade Party: Exporter - only their own shipments
+    if (user.role === UserRole.EXPORTER) {
+      return shipments.filter(s => 
+        s.exporterName.toLowerCase() === user.companyName.toLowerCase() || 
+        (s.exporterEmail && s.exporterEmail.toLowerCase() === user.email.toLowerCase())
+      );
+    }
+
     // Logistics chain constraints: scope strictly to assigned shipments
     return shipments.filter(s => {
       const role = user.role;
@@ -189,9 +206,9 @@ export default function App() {
 
       {/* 5. PROTECTED COMPLETED CONSOLE SYSTEM */}
       {activePage === 'dashboard' && (
-        <div className="flex h-screen overflow-hidden">
+        <div className="flex flex-col h-screen overflow-hidden">
           
-          {/* Main Sidebar */}
+          {/* Main Header Top Navbar */}
           <Sidebar 
             user={user} 
             activeTab={activeTab === 'shipments-detail' ? 'shipments' : activeTab === 'shipments-new' ? 'shipments' : activeTab}
@@ -200,7 +217,7 @@ export default function App() {
           />
 
           {/* Tab Pages Workspace Router */}
-          <div className="flex-1 flex flex-col min-w-0 bg-[#FAFAF7]">
+          <div className="flex-1 flex flex-col min-w-0 bg-[#FAFAF7] overflow-y-auto">
             {activeTab === 'dashboard' && (
               <DashboardHome 
                 shipments={allowedShipmentsForUser} 
@@ -241,7 +258,7 @@ export default function App() {
             )}
 
             {activeTab === 'documents' && (
-              <DocumentsTab shipments={allowedShipmentsForUser} />
+              <DocumentsTab shipments={allowedShipmentsForUser} user={user} onUpdate={reloadData} />
             )}
 
             {activeTab === 'payments' && (

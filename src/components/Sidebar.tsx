@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { User, UserRole } from '../types';
 import { 
   LayoutDashboard, 
@@ -14,7 +14,7 @@ import {
   MapPin, 
   LogOut, 
   Settings,
-  BellRing
+  ChevronDown
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -25,14 +25,20 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ user, activeTab, onNavigateTab, onLogout }: SidebarProps) {
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
   const getNavItems = () => {
     const role = user?.role;
     const isTradeParty = role === UserRole.IMPORTER || role === UserRole.EXPORTER;
 
     const items: { id: string; label: string; icon: any; tag?: string; }[] = [
-      { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-      { id: 'shipments', label: 'My Shipments', icon: Ship }
+      { id: 'dashboard', label: 'Overview', icon: LayoutDashboard }
     ];
+
+    // Note: 'my shipments' is redundant for logistics users, and it was only pushed for isTradeParty.
+    if (isTradeParty) {
+      items.push({ id: 'shipments', label: 'My Shipments', icon: Ship });
+    }
 
     // Documents Access: Customs Broker, Carrier, Warehouse, and Inspector/Insurer (mapped as FREIGHT_FORWARDER)
     const hasDocAccess = isTradeParty || 
@@ -60,26 +66,23 @@ export default function Sidebar({ user, activeTab, onNavigateTab, onLogout }: Si
   const navItems = getNavItems();
 
   return (
-    <aside id="dashboard-sidebar" className="w-80 bg-[#001240] text-slate-100 flex flex-col justify-between shrink-0 select-none border-r border-[#001240]/10">
-      
-      {/* Brand logo */}
-      <div className="p-6 border-b border-white/[0.08]">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigateTab('dashboard')}>
-          <div className="w-9 h-9 rounded-lg bg-[#1A66FF] flex items-center justify-center text-white font-bold text-lg">
-            M
+    <header className="w-full bg-[#001240] text-slate-100 shrink-0 select-none border-b border-white/[0.08] z-30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        
+        {/* Brand logo (Left) */}
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigateTab('dashboard')}>
+            <div className="w-8 h-8 rounded bg-[#1A66FF] flex items-center justify-center text-white font-bold text-base">
+              M
+            </div>
+            <div>
+              <span className="font-bold text-base tracking-tight text-white block leading-tight">Mari<span className="text-[#1A66FF]">Trade</span></span>
+              <span className="block text-[8px] uppercase tracking-widest text-[#0BAFB0] font-mono leading-none">Pilipinas Portal</span>
+            </div>
           </div>
-          <div>
-            <span className="font-bold text-lg tracking-tight text-white block">Mari<span className="text-[#1A66FF]">Trade</span></span>
-            <span className="block text-[9px] uppercase tracking-widest text-[#0BAFB0] font-mono leading-none">Pilipinas Portal</span>
-          </div>
-        </div>
-      </div>
 
-      {/* Main navigation */}
-      <div className="flex-1 py-6 px-4 overflow-y-auto space-y-7">
-        <div>
-          <span className="block px-3 text-[10px] font-bold tracking-widest uppercase text-slate-400 font-mono mb-3">MARITIME CONSOLE</span>
-          <nav className="space-y-1.5">
+          {/* Navigation Links (Center-Left) */}
+          <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -88,18 +91,16 @@ export default function Sidebar({ user, activeTab, onNavigateTab, onLogout }: Si
                   id={`nav-tab-${item.id}`}
                   key={item.id}
                   onClick={() => onNavigateTab(item.id)}
-                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-sm font-semibold transition-all ${
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold tracking-wide transition ${
                     isActive 
-                      ? 'bg-[#1A66FF] text-white' 
+                      ? 'bg-[#1A66FF] text-white shadow-sm' 
                       : 'text-slate-300 hover:bg-white/[0.05] hover:text-white'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon size={18} className={isActive ? 'text-white' : 'text-slate-400'} />
-                    <span>{item.label}</span>
-                  </div>
+                  <Icon size={14} className={isActive ? 'text-white' : 'text-slate-400'} />
+                  <span>{item.label}</span>
                   {item.tag && (
-                    <span className="text-[10px] uppercase font-bold font-mono px-1.5 py-0.5 rounded bg-[#FF5C35] text-white">
+                    <span className="text-[8px] uppercase font-bold font-mono px-1 py-0.5 rounded bg-[#FF5C35] text-white">
                       {item.tag}
                     </span>
                   )}
@@ -109,55 +110,69 @@ export default function Sidebar({ user, activeTab, onNavigateTab, onLogout }: Si
           </nav>
         </div>
 
-        {/* Informative widget */}
-        <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-3">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#0BAFB0]">
+        {/* User profile & controls (Right) */}
+        <div className="flex items-center gap-4">
+          <div className="hidden lg:flex items-center gap-2 text-[10px] font-mono font-bold text-[#0BAFB0] border-r border-white/[0.08] pr-4 py-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#0BAFB0] animate-pulse"></span>
-            STELLAR MAINNET ACTIVE
+            STELLAR SECURE
           </div>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            Multi-signature smart escrows are working live on decentralized Stellar ledger ledger rails. Gas rate conversion: <strong className="font-mono text-white">₱56.50/USD</strong>.
-          </p>
-        </div>
-      </div>
 
-      {/* User profile section */}
-      <div className="p-6 border-t border-white/[0.08] bg-white/[0.01] space-y-4">
-        {user && (
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#1A66FF]/20 border border-[#1A66FF]/40 flex items-center justify-center text-[#1A66FF] font-bold text-sm">
-              {user.fullName.split(' ').map(n=>n[0]).join('')}
+          {user && (
+            <div className="relative">
+              <button 
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] transition text-left"
+              >
+                <div className="w-8 h-8 rounded-full bg-[#1A66FF]/20 border border-[#1A66FF]/40 flex items-center justify-center text-[#1A66FF] font-bold text-xs shrink-0">
+                  {user.fullName.split(' ').map(n=>n[0]).join('')}
+                </div>
+                <div className="hidden sm:block min-w-0">
+                  <span className="block font-bold text-xs text-white max-w-[120px] truncate leading-tight">{user.fullName}</span>
+                  <span className="block text-[9px] text-[#0BAFB0] font-mono truncate uppercase leading-none mt-0.5">{user.companyName}</span>
+                </div>
+                <ChevronDown size={14} className="text-slate-400 hover:text-white" />
+              </button>
+
+              {showProfileMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-[#E5E3DA] shadow-lg py-1.5 z-50 text-slate-700 animate-fade-in text-xs font-semibold">
+                    <div className="px-3.5 py-2 border-b border-[#E5E3DA] bg-[#FAFAF7]">
+                      <span className="block text-[9px] uppercase font-bold tracking-wider text-slate-400 font-mono">My Account Node</span>
+                      <strong className="block text-slate-800 font-mono truncate">{user.role.replace(/_/g, ' ')}</strong>
+                    </div>
+
+                    <button
+                      id="btn-sidebar-settings"
+                      onClick={() => {
+                        onNavigateTab('settings');
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3.5 py-2 text-left hover:bg-[#FAFAF7] transition text-slate-700 hover:text-slate-900"
+                    >
+                      <Settings size={14} className="text-slate-500" />
+                      <span>Account Settings</span>
+                    </button>
+
+                    <button
+                      id="btn-sidebar-logout"
+                      onClick={() => {
+                        onLogout();
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3.5 py-2 text-left text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition border-t border-[#E5E3DA]"
+                    >
+                      <LogOut size={14} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="min-w-0 flex-1">
-              <span className="block font-bold text-sm text-white truncate" title={user.fullName}>{user.fullName}</span>
-              <span className="block text-[11px] text-[#0BAFB0] font-mono truncate uppercase">{user.companyName}</span>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-2 pt-2">
-          <button
-            id="btn-sidebar-settings"
-            onClick={() => onNavigateTab('settings')}
-            className="flex items-center justify-center gap-1.5 py-1.5 rounded bg-white/[0.04] hover:bg-white/[0.08] text-xs text-slate-300 font-semibold transition-colors cursor-pointer"
-            title="Account Settings"
-          >
-            <Settings size={13} />
-            <span>Settings</span>
-          </button>
-          
-          <button
-            id="btn-sidebar-logout"
-            onClick={onLogout}
-            className="flex items-center justify-center gap-1.5 py-1.5 rounded bg-white/[0.04] hover:bg-[#FF5C35]/10 hover:text-[#FF5C35] text-xs text-slate-300 font-semibold transition-colors cursor-pointer"
-            title="Log Out Profile"
-          >
-            <LogOut size={13} />
-            <span>Sign Out</span>
-          </button>
+          )}
         </div>
-      </div>
 
-    </aside>
+      </div>
+    </header>
   );
 }

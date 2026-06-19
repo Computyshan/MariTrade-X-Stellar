@@ -5,10 +5,11 @@
 
 import React, { useState } from 'react';
 import { Shipment, ShipmentStatus, MilestoneType, DocumentType, UserRole, User } from '../types';
-import { logMilestoneInStorage, uploadDocumentInStorage } from '../utils/storage';
+import { logMilestoneInStorage, uploadDocumentInStorage, canLogMilestone } from '../utils/storage';
 import { 
   Anchor, Ship, FileText, CheckCircle2, Truck, ClipboardList, ShieldAlert,
-  Calendar, MapPin, AlertCircle, RefreshCw, Upload, Eye, Clock, ListFilter
+  Calendar, MapPin, AlertCircle, RefreshCw, Upload, Eye, Clock, ListFilter,
+  Search
 } from 'lucide-react';
 
 interface LogisticsDashboardProps {
@@ -61,6 +62,17 @@ function getStatusBadge(status: ShipmentStatus) {
 export function PortAuthorityDashboard({ shipments, user, onViewShipment, onUpdate }: LogisticsDashboardProps) {
   const assigned = getAssignedShipments(shipments, user);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredAssigned = assigned.filter(s => 
+    s.referenceCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    s.originCountry.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.destinationPort.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.exporterName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (s.importerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    s.status.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleLogArrival = (shipmentId: string) => {
     setLoadingId(shipmentId);
@@ -92,23 +104,39 @@ export function PortAuthorityDashboard({ shipments, user, onViewShipment, onUpda
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">My Operating Node</span>
-          <div className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <Anchor className="text-[#1A66FF]" size={18} />
-            <span>{user.companyName}</span>
+      <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">My Operating Node:</span>
+              <strong className="text-xs text-[#1A66FF] font-mono">{user.companyName} ({user.role.replace(/_/g, ' ')})</strong>
+            </div>
+            <h3 className="font-bold text-[#001240] text-sm">Dashboard Overview & Booking Finder</h3>
+            <p className="text-xs text-slate-500">Quickly find and record logistics actions for active trade bookings assigned to your terminal.</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-mono font-bold bg-[#FAFAF7] text-slate-600 border border-[#E5E3DA] px-2.5 py-1 rounded-full">
+              {assigned.length} Assigned {assigned.length === 1 ? 'Job' : 'Jobs'}
+            </span>
+            {searchTerm && (
+              <span className="text-xs font-mono font-bold bg-blue-50 text-[#1A66FF] border border-[#C8DBFF] px-2.5 py-1 rounded-full">
+                {filteredAssigned.length} Found
+              </span>
+            )}
           </div>
         </div>
-        <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Assigned Vessels</span>
-          <div className="text-2xl font-extrabold text-[#001240]">{assigned.length}</div>
-        </div>
-        <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Arrived & Completed</span>
-          <div className="text-2xl font-extrabold text-[#078384]">
-            {assigned.filter(s => s.status === ShipmentStatus.AT_PORT || s.status === ShipmentStatus.DELIVERED).length}
+        
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <Search size={16} />
           </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search bookings by reference, description, port, country, exporter, importer or status..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#E5E3DA] bg-[#FAFAF7] hover:bg-white focus:bg-white focus:ring-1 focus:ring-[#1A66FF] focus:border-[#1A66FF] transition text-xs text-slate-800 placeholder-slate-400"
+          />
         </div>
       </div>
 
@@ -121,6 +149,8 @@ export function PortAuthorityDashboard({ shipments, user, onViewShipment, onUpda
         <div className="overflow-x-auto">
           {assigned.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-xs">No vessels currently assigned to your authority.</div>
+          ) : filteredAssigned.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 text-xs font-semibold">No bookings match your search term: "{searchTerm}"</div>
           ) : (
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FAFAF7] uppercase font-mono tracking-wider font-bold text-slate-500 border-b border-[#E5E3DA]">
@@ -133,49 +163,63 @@ export function PortAuthorityDashboard({ shipments, user, onViewShipment, onUpda
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E3DA]">
-                {assigned.map((s) => (
-                  <tr key={s.id} className="hover:bg-[#FAFAF7]/50">
-                    <td className="py-4 px-4">
-                      <span className="font-mono font-bold block text-slate-800">{s.referenceCode}</span>
-                      <span className="text-[10px] text-slate-400 truncate max-w-xs block">{s.description}</span>
-                    </td>
-                    <td className="py-4 px-3 font-medium text-slate-600">
-                      {s.originCountry} &rarr; {s.destinationPort}
-                    </td>
-                    <td className="py-4 px-3">
-                      {getStatusBadge(s.status)}
-                    </td>
-                    <td className="py-4 px-3 font-mono text-slate-500">
-                      {s.estimatedArrival ? new Date(s.estimatedArrival).toLocaleDateString() : 'N/A'}
-                    </td>
-                    <td className="py-4 px-3 text-right space-x-2">
-                      {s.status === ShipmentStatus.CONFIRMED && (
+                {filteredAssigned.map((s) => {
+                  const checkDep = canLogMilestone(s, MilestoneType.VESSEL_DEPARTED);
+                  const checkArr = canLogMilestone(s, MilestoneType.VESSEL_ARRIVED_DESTINATION);
+                  return (
+                    <tr key={s.id} className="hover:bg-[#FAFAF7]/50">
+                      <td className="py-4 px-4">
+                        <span className="font-mono font-bold block text-slate-800">{s.referenceCode}</span>
+                        <span className="text-[10px] text-slate-400 truncate max-w-xs block">{s.description}</span>
+                      </td>
+                      <td className="py-4 px-3 font-medium text-slate-600">
+                        {s.originCountry} &rarr; {s.destinationPort}
+                      </td>
+                      <td className="py-4 px-3">
+                        {getStatusBadge(s.status)}
+                      </td>
+                      <td className="py-4 px-3 font-mono text-slate-500">
+                        {s.estimatedArrival ? new Date(s.estimatedArrival).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td className="py-4 px-3 text-right space-x-2">
+                        {s.status === ShipmentStatus.CONFIRMED && (
+                          <button
+                            onClick={() => checkDep.allowed && handleLogDeparture(s.id)}
+                            disabled={loadingId !== null || !checkDep.allowed}
+                            title={checkDep.reason}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                              checkDep.allowed 
+                                ? 'bg-[#1A66FF] text-white hover:bg-[#0047E0]' 
+                                : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                            }`}
+                          >
+                            {checkDep.allowed ? 'Log Departure' : '🔒 Departure Locked'}
+                          </button>
+                        )}
+                        {s.status === ShipmentStatus.IN_TRANSIT && (
+                          <button
+                            onClick={() => checkArr.allowed && handleLogArrival(s.id)}
+                            disabled={loadingId !== null || !checkArr.allowed}
+                            title={checkArr.reason}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                              checkArr.allowed 
+                                ? 'bg-teal-500 text-white hover:bg-teal-600' 
+                                : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                            }`}
+                          >
+                            {checkArr.allowed ? 'Log Vessel Arrival' : '🔒 Arrival Locked'}
+                          </button>
+                        )}
                         <button
-                          onClick={() => handleLogDeparture(s.id)}
-                          disabled={loadingId !== null}
-                          className="px-3 py-1.5 rounded-lg bg-[#1A66FF] text-white hover:bg-[#0047E0] transition text-xs font-semibold"
+                          onClick={() => onViewShipment(s.id)}
+                          className="px-3 py-1.5 rounded-lg border border-[#E5E3DA] bg-white hover:bg-[#F2F1EC] text-slate-700 transition text-xs font-semibold"
                         >
-                          Log Departure
+                          File Details
                         </button>
-                      )}
-                      {s.status === ShipmentStatus.IN_TRANSIT && (
-                        <button
-                          onClick={() => handleLogArrival(s.id)}
-                          disabled={loadingId !== null}
-                          className="px-3 py-1.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 transition text-xs font-semibold"
-                        >
-                          Log Vessel Arrival
-                        </button>
-                      )}
-                      <button
-                        onClick={() => onViewShipment(s.id)}
-                        className="px-3 py-1.5 rounded-lg border border-[#E5E3DA] bg-white hover:bg-[#F2F1EC] text-slate-700 transition text-xs font-semibold"
-                      >
-                        File Details
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -191,6 +235,17 @@ export function CustomsBrokerDashboard({ shipments, user, onViewShipment, onUpda
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [showAmendModal, setShowAmendModal] = useState<string | null>(null);
   const [amendText, setAmendText] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredAssigned = assigned.filter(s => 
+    s.referenceCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    s.originCountry.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.destinationPort.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.exporterName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (s.importerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    s.status.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleClearCustoms = (shipmentId: string) => {
     setLoadingId(shipmentId);
@@ -232,23 +287,39 @@ export function CustomsBrokerDashboard({ shipments, user, onViewShipment, onUpda
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Customs Operator</span>
-          <div className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <ClipboardList className="text-orange-500" size={18} />
-            <span>{user.companyName}</span>
+      <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">My Operating Node:</span>
+              <strong className="text-xs text-[#1A66FF] font-mono">{user.companyName} ({user.role.replace(/_/g, ' ')})</strong>
+            </div>
+            <h3 className="font-bold text-[#001240] text-sm">Dashboard Overview & Booking Finder</h3>
+            <p className="text-xs text-slate-500">Quickly find and record logistics actions for active trade bookings assigned to your terminal.</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-mono font-bold bg-[#FAFAF7] text-slate-600 border border-[#E5E3DA] px-2.5 py-1 rounded-full">
+              {assigned.length} Assigned {assigned.length === 1 ? 'Job' : 'Jobs'}
+            </span>
+            {searchTerm && (
+              <span className="text-xs font-mono font-bold bg-blue-50 text-[#1A66FF] border border-[#C8DBFF] px-2.5 py-1 rounded-full">
+                {filteredAssigned.length} Found
+              </span>
+            )}
           </div>
         </div>
-        <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Assigned Jobs</span>
-          <div className="text-2xl font-extrabold text-[#001240]">{assigned.length}</div>
-        </div>
-         <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Awaiting Clearance</span>
-          <div className="text-2xl font-extrabold text-orange-600">
-            {assigned.filter(s => s.status === ShipmentStatus.AT_PORT || s.status === ShipmentStatus.CUSTOMS_CLEARANCE).length}
+        
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <Search size={16} />
           </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search bookings by reference, description, port, country, exporter, importer or status..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#E5E3DA] bg-[#FAFAF7] hover:bg-white focus:bg-white focus:ring-1 focus:ring-[#1A66FF] focus:border-[#1A66FF] transition text-xs text-slate-800 placeholder-slate-400"
+          />
         </div>
       </div>
 
@@ -263,6 +334,8 @@ export function CustomsBrokerDashboard({ shipments, user, onViewShipment, onUpda
         <div className="overflow-x-auto">
           {assigned.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-xs">No shipments assigned to your customs brokerage.</div>
+          ) : filteredAssigned.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 text-xs font-semibold">No bookings match your search term: "{searchTerm}"</div>
           ) : (
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FAFAF7] uppercase font-mono tracking-wider font-bold text-slate-500 border-b border-[#E5E3DA]">
@@ -275,44 +348,59 @@ export function CustomsBrokerDashboard({ shipments, user, onViewShipment, onUpda
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E3DA]">
-                {assigned.map((s) => (
-                  <tr key={s.id} className="hover:bg-[#FAFAF7]/50">
-                    <td className="py-4 px-4">
-                      <span className="font-mono font-bold block text-slate-800">{s.referenceCode}</span>
-                      <span className="text-[10px] text-slate-400 truncate max-w-xs block">{s.description}</span>
-                    </td>
-                    <td className="py-4 px-3 font-semibold text-slate-600">{s.destinationPort}</td>
-                    <td className="py-4 px-3 text-slate-500 font-mono">
-                      VAT / Import Entry Duties Active
-                    </td>
-                    <td className="py-4 px-3">{getStatusBadge(s.status)}</td>
-                    <td className="py-4 px-3 text-right space-x-2">
-                      {(s.status === ShipmentStatus.AT_PORT || s.status === ShipmentStatus.CUSTOMS_CLEARANCE) && (
-                        <>
-                          <button
-                            onClick={() => handleClearCustoms(s.id)}
-                            disabled={loadingId !== null}
-                            className="px-2.5 py-1.5 rounded-lg bg-[#0BAFB0] hover:bg-[#078384] text-white transition text-xs font-semibold"
-                          >
-                            Approve Customs Release
-                          </button>
-                          <button
-                            onClick={() => setShowAmendModal(s.id)}
-                            className="px-2.5 py-1.5 rounded-lg border border-[#FF5C35] hover:bg-[#FFF2EE] text-[#CC3A1C] transition text-xs font-semibold"
-                          >
-                            Request Amendment
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => onViewShipment(s.id)}
-                        className="px-2.5 py-1.5 rounded-lg border border-[#E5E3DA] bg-white hover:bg-[#F2F1EC] text-slate-700 transition text-xs font-semibold"
-                      >
-                        Paperwork
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filteredAssigned.map((s) => {
+                  const checkCleared = canLogMilestone(s, MilestoneType.CUSTOMS_CLEARED);
+                  const checkEntry = canLogMilestone(s, MilestoneType.CUSTOMS_ENTRY_FILED);
+                  return (
+                    <tr key={s.id} className="hover:bg-[#FAFAF7]/50">
+                      <td className="py-4 px-4">
+                        <span className="font-mono font-bold block text-slate-800">{s.referenceCode}</span>
+                        <span className="text-[10px] text-slate-400 truncate max-w-xs block">{s.description}</span>
+                      </td>
+                      <td className="py-4 px-3 font-semibold text-slate-600">{s.destinationPort}</td>
+                      <td className="py-4 px-3 text-slate-500 font-mono">
+                        VAT / Import Entry Duties Active
+                      </td>
+                      <td className="py-4 px-3">{getStatusBadge(s.status)}</td>
+                      <td className="py-4 px-3 text-right space-x-2">
+                        {(s.status === ShipmentStatus.AT_PORT || s.status === ShipmentStatus.CUSTOMS_CLEARANCE) && (
+                          <>
+                            <button
+                              onClick={() => checkCleared.allowed && handleClearCustoms(s.id)}
+                              disabled={loadingId !== null || !checkCleared.allowed}
+                              title={checkCleared.reason}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                                checkCleared.allowed
+                                  ? 'bg-[#0BAFB0] hover:bg-[#078384] text-white font-bold'
+                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed font-medium'
+                              }`}
+                            >
+                              {checkCleared.allowed ? 'Approve Customs Release' : '🔒 Release Locked'}
+                            </button>
+                            <button
+                              onClick={() => checkEntry.allowed && setShowAmendModal(s.id)}
+                              disabled={loadingId !== null || !checkEntry.allowed}
+                              title={checkEntry.reason}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                                checkEntry.allowed
+                                  ? 'border border-[#FF5C35] hover:bg-[#FFF2EE] text-[#CC3A1C]'
+                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                              }`}
+                            >
+                              {checkEntry.allowed ? 'Request Amendment' : '🔒 File Locked'}
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => onViewShipment(s.id)}
+                          className="px-2.5 py-1.5 rounded-lg border border-[#E5E3DA] bg-white hover:bg-[#F2F1EC] text-slate-700 transition text-xs font-semibold"
+                        >
+                          Paperwork
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -363,6 +451,17 @@ export function CarrierDashboard({ shipments, user, onViewShipment, onUpdate }: 
   const assigned = getAssignedShipments(shipments, user);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [customMilestone, setCustomMilestone] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredAssigned = assigned.filter(s => 
+    s.referenceCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    s.originCountry.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.destinationPort.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.exporterName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (s.importerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    s.status.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handlePostTransitLog = (shipmentId: string) => {
     if (!customMilestone.trim()) return;
@@ -382,17 +481,39 @@ export function CarrierDashboard({ shipments, user, onViewShipment, onUpdate }: 
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Shipping Line Agent</span>
-          <div className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <Ship className="text-[#1A66FF]" size={18} />
-            <span>{user.companyName}</span>
+      <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">My Operating Node:</span>
+              <strong className="text-xs text-[#1A66FF] font-mono">{user.companyName} ({user.role.replace(/_/g, ' ')})</strong>
+            </div>
+            <h3 className="font-bold text-[#001240] text-sm">Dashboard Overview & Booking Finder</h3>
+            <p className="text-xs text-slate-500">Quickly find and record logistics actions for active trade bookings assigned to your terminal.</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-mono font-bold bg-[#FAFAF7] text-slate-600 border border-[#E5E3DA] px-2.5 py-1 rounded-full">
+              {assigned.length} Assigned {assigned.length === 1 ? 'Job' : 'Jobs'}
+            </span>
+            {searchTerm && (
+              <span className="text-xs font-mono font-bold bg-blue-50 text-[#1A66FF] border border-[#C8DBFF] px-2.5 py-1 rounded-full">
+                {filteredAssigned.length} Found
+              </span>
+            )}
           </div>
         </div>
-        <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Assigned Maritime Jobs</span>
-          <div className="text-2xl font-extrabold text-[#001240]">{assigned.length}</div>
+        
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <Search size={16} />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search bookings by reference, description, port, country, exporter, importer or status..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#E5E3DA] bg-[#FAFAF7] hover:bg-white focus:bg-white focus:ring-1 focus:ring-[#1A66FF] focus:border-[#1A66FF] transition text-xs text-slate-800 placeholder-slate-400"
+          />
         </div>
       </div>
 
@@ -405,6 +526,8 @@ export function CarrierDashboard({ shipments, user, onViewShipment, onUpdate }: 
         <div className="overflow-x-auto">
           {assigned.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-xs">No shipments assigned to your shipping route.</div>
+          ) : filteredAssigned.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 text-xs font-semibold">No bookings match your search term: "{searchTerm}"</div>
           ) : (
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FAFAF7] uppercase font-mono tracking-wider font-bold text-slate-500 border-b border-[#E5E3DA]">
@@ -417,47 +540,56 @@ export function CarrierDashboard({ shipments, user, onViewShipment, onUpdate }: 
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E3DA]">
-                {assigned.map((s) => (
-                  <tr key={s.id} className="hover:bg-[#FAFAF7]/50">
-                    <td className="py-4 px-4">
-                      <span className="font-mono font-bold block text-slate-800">{s.referenceCode}</span>
-                      <span className="text-[10px] text-slate-400 truncate max-w-xs block">{s.description}</span>
-                    </td>
-                    <td className="py-4 px-3 font-semibold text-slate-600">
-                      {s.originCountry} &rsaquo; {s.destinationPort}
-                    </td>
-                    <td className="py-4 px-3 font-mono text-slate-500">
-                      {s.estimatedArrival ? new Date(s.estimatedArrival).toLocaleDateString() : 'N/A'}
-                    </td>
-                    <td className="py-4 px-3">{getStatusBadge(s.status)}</td>
-                    <td className="py-4 px-3 text-right">
-                      {s.status === ShipmentStatus.IN_TRANSIT && (
-                        <div className="flex items-center justify-end gap-2 max-w-sm ml-auto">
-                          <input
-                            type="text"
-                            placeholder="Type in-transit event..."
-                            className="bg-white border border-[#E5E3DA] text-[11px] px-2 py-1 rounded-md w-40 focus:outline-none focus:border-[#1A66FF]"
-                            value={customMilestone}
-                            onChange={(e) => setCustomMilestone(e.target.value)}
-                          />
-                          <button
-                            onClick={() => handlePostTransitLog(s.id)}
-                            disabled={loadingId !== null || !customMilestone.trim()}
-                            className="px-2.5 py-1.5 bg-[#1A66FF] text-white hover:bg-[#0047E0] rounded-md font-bold text-[10px]"
-                          >
-                            Log Transit Status
-                          </button>
-                        </div>
-                      )}
-                      <button
-                        onClick={() => onViewShipment(s.id)}
-                        className="px-2.5 py-1.5 ml-2 border border-[#E5E3DA] bg-white hover:bg-[#F2F1EC] text-slate-600 rounded-lg font-bold text-xs"
-                      >
-                        View BOL
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filteredAssigned.map((s) => {
+                  const checkLoaded = canLogMilestone(s, MilestoneType.CONTAINER_LOADED);
+                  return (
+                    <tr key={s.id} className="hover:bg-[#FAFAF7]/50">
+                      <td className="py-4 px-4">
+                        <span className="font-mono font-bold block text-slate-800">{s.referenceCode}</span>
+                        <span className="text-[10px] text-slate-400 truncate max-w-xs block">{s.description}</span>
+                      </td>
+                      <td className="py-4 px-3 font-semibold text-slate-600">
+                        {s.originCountry} &rsaquo; {s.destinationPort}
+                      </td>
+                      <td className="py-4 px-3 font-mono text-slate-500">
+                        {s.estimatedArrival ? new Date(s.estimatedArrival).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td className="py-4 px-3">{getStatusBadge(s.status)}</td>
+                      <td className="py-4 px-3 text-right">
+                        {s.status === ShipmentStatus.IN_TRANSIT && (
+                          <div className="flex items-center justify-end gap-2 max-w-sm ml-auto">
+                            <input
+                              type="text"
+                              placeholder={checkLoaded.allowed ? "Type in-transit event..." : "🔒 Awaiting previous stage"}
+                              disabled={!checkLoaded.allowed}
+                              className="bg-white border border-[#E5E3DA] text-[11px] px-2 py-1 rounded-md w-40 focus:outline-none focus:border-[#1A66FF] disabled:bg-slate-50 disabled:text-slate-400"
+                              value={customMilestone}
+                              onChange={(e) => setCustomMilestone(e.target.value)}
+                            />
+                            <button
+                              onClick={() => checkLoaded.allowed && handlePostTransitLog(s.id)}
+                              disabled={loadingId !== null || !customMilestone.trim() || !checkLoaded.allowed}
+                              title={checkLoaded.reason}
+                              className={`px-2.5 py-1.5 rounded-md font-bold text-[10px] transition ${
+                                checkLoaded.allowed
+                                  ? 'bg-[#1A66FF] text-white hover:bg-[#0047E0]'
+                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                              }`}
+                            >
+                              {checkLoaded.allowed ? 'Log Transit Status' : '🔒 Locked'}
+                            </button>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => onViewShipment(s.id)}
+                          className="px-2.5 py-1.5 ml-2 border border-[#E5E3DA] bg-white hover:bg-[#F2F1EC] text-slate-600 rounded-lg font-bold text-xs"
+                        >
+                          View BOL
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -472,6 +604,17 @@ export function WarehouseDashboard({ shipments, user, onViewShipment, onUpdate }
   const assigned = getAssignedShipments(shipments, user);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [hoursInput, setHoursInput] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredAssigned = assigned.filter(s => 
+    s.referenceCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    s.originCountry.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.destinationPort.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.exporterName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (s.importerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    s.status.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleConfirmIntake = (shipmentId: string) => {
     setLoadingId(shipmentId);
@@ -505,17 +648,39 @@ export function WarehouseDashboard({ shipments, user, onViewShipment, onUpdate }
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Terminal & Yard Staging</span>
-          <div className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <ClipboardList className="text-[#0BAFB0]" size={18} />
-            <span>{user.companyName}</span>
+      <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">My Operating Node:</span>
+              <strong className="text-xs text-[#1A66FF] font-mono">{user.companyName} ({user.role.replace(/_/g, ' ')})</strong>
+            </div>
+            <h3 className="font-bold text-[#001240] text-sm">Dashboard Overview & Booking Finder</h3>
+            <p className="text-xs text-slate-500">Quickly find and record logistics actions for active trade bookings assigned to your terminal.</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-mono font-bold bg-[#FAFAF7] text-slate-600 border border-[#E5E3DA] px-2.5 py-1 rounded-full">
+              {assigned.length} Assigned {assigned.length === 1 ? 'Job' : 'Jobs'}
+            </span>
+            {searchTerm && (
+              <span className="text-xs font-mono font-bold bg-blue-50 text-[#1A66FF] border border-[#C8DBFF] px-2.5 py-1 rounded-full">
+                {filteredAssigned.length} Found
+              </span>
+            )}
           </div>
         </div>
-        <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Staged Cargo Count</span>
-          <div className="text-2xl font-extrabold text-[#001240]">{assigned.length}</div>
+        
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <Search size={16} />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search bookings by reference, description, port, country, exporter, importer or status..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#E5E3DA] bg-[#FAFAF7] hover:bg-white focus:bg-white focus:ring-1 focus:ring-[#1A66FF] focus:border-[#1A66FF] transition text-xs text-slate-800 placeholder-slate-400"
+          />
         </div>
       </div>
 
@@ -528,6 +693,8 @@ export function WarehouseDashboard({ shipments, user, onViewShipment, onUpdate }
         <div className="overflow-x-auto">
           {assigned.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-xs">No cargo scheduled for your yard facilities.</div>
+          ) : filteredAssigned.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 text-xs font-semibold">No bookings match your search term: "{searchTerm}"</div>
           ) : (
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FAFAF7] uppercase font-mono tracking-wider font-bold text-slate-500 border-b border-[#E5E3DA]">
@@ -540,54 +707,62 @@ export function WarehouseDashboard({ shipments, user, onViewShipment, onUpdate }
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E3DA]">
-                {assigned.map((s) => (
-                  <tr key={s.id} className="hover:bg-[#FAFAF7]/50">
-                    <td className="py-4 px-4">
-                      <span className="font-mono font-bold block text-slate-800">{s.referenceCode}</span>
-                      <span className="text-[10px] text-slate-400 truncate max-w-xs block">{s.description}</span>
-                    </td>
-                    <td className="py-4 px-3 font-semibold text-slate-600">{s.destinationPort}</td>
-                    <td className="py-4 px-3 font-mono text-slate-500">
-                      Standard terminal rates active
-                    </td>
-                    <td className="py-4 px-3">{getStatusBadge(s.status)}</td>
-                    <td className="py-4 px-3 text-right">
-                      {s.status === ShipmentStatus.AT_PORT && (
-                        <button
-                          onClick={() => handleConfirmIntake(s.id)}
-                          disabled={loadingId !== null}
-                          className="px-3 py-1.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 transition text-xs font-semibold mr-2"
-                        >
-                          Confirm Intake
-                        </button>
-                      )}
-                      {s.status === ShipmentStatus.CUSTOMS_CLEARANCE && (
-                        <div className="inline-flex gap-1">
-                          <input
-                            type="number"
-                            placeholder="Hours..."
-                            className="w-16 px-1.5 py-1 text-xs border border-[#E5E3DA] rounded bg-white text-slate-800 focus:outline-none"
-                            value={hoursInput}
-                            onChange={(e) => setHoursInput(e.target.value)}
-                          />
+                {filteredAssigned.map((s) => {
+                  const checkIntake = canLogMilestone(s, MilestoneType.CARGO_RECEIVED_WAREHOUSE);
+                  return (
+                    <tr key={s.id} className="hover:bg-[#FAFAF7]/50">
+                      <td className="py-4 px-4">
+                        <span className="font-mono font-bold block text-slate-800">{s.referenceCode}</span>
+                        <span className="text-[10px] text-slate-400 truncate max-w-xs block">{s.description}</span>
+                      </td>
+                      <td className="py-4 px-3 font-semibold text-slate-600">{s.destinationPort}</td>
+                      <td className="py-4 px-3 font-mono text-slate-500">
+                        Standard terminal rates active
+                      </td>
+                      <td className="py-4 px-3">{getStatusBadge(s.status)}</td>
+                      <td className="py-4 px-3 text-right">
+                        {s.status === ShipmentStatus.AT_PORT && (
                           <button
-                            onClick={() => handleLogClock(s.id)}
-                            disabled={loadingId !== null || !hoursInput}
-                            className="px-2 py-1 bg-amber-500 text-white font-bold rounded text-[10px]"
+                            onClick={() => checkIntake.allowed && handleConfirmIntake(s.id)}
+                            disabled={loadingId !== null || !checkIntake.allowed}
+                            title={checkIntake.reason}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold mr-2 transition ${
+                              checkIntake.allowed
+                                ? 'bg-teal-500 text-white hover:bg-teal-600 font-bold'
+                                : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed font-medium'
+                            }`}
                           >
-                            Update Clock
+                            {checkIntake.allowed ? 'Confirm Intake' : '🔒 Intake Locked'}
                           </button>
-                        </div>
-                      )}
-                      <button
-                        onClick={() => onViewShipment(s.id)}
-                        className="px-2.5 py-1.5 ml-2 border border-[#E5E3DA] bg-white hover:bg-[#F2F1EC] text-slate-600 rounded-lg font-bold text-xs"
-                      >
-                        Details
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                        )}
+                        {s.status === ShipmentStatus.CUSTOMS_CLEARANCE && (
+                          <div className="inline-flex gap-1">
+                            <input
+                              type="number"
+                              placeholder="Hours..."
+                              className="w-16 px-1.5 py-1 text-xs border border-[#E5E3DA] rounded bg-white text-slate-800 focus:outline-none"
+                              value={hoursInput}
+                              onChange={(e) => setHoursInput(e.target.value)}
+                            />
+                            <button
+                              onClick={() => handleLogClock(s.id)}
+                              disabled={loadingId !== null || !hoursInput}
+                              className="px-2 py-1 bg-amber-500 text-white font-bold rounded text-[10px]"
+                            >
+                              Update Clock
+                            </button>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => onViewShipment(s.id)}
+                          className="px-2.5 py-1.5 ml-2 border border-[#E5E3DA] bg-white hover:bg-[#F2F1EC] text-slate-600 rounded-lg font-bold text-xs"
+                        >
+                          Details
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -601,6 +776,17 @@ export function WarehouseDashboard({ shipments, user, onViewShipment, onUpdate }
 export function TruckerDashboard({ shipments, user, onViewShipment, onUpdate }: LogisticsDashboardProps) {
   const assigned = getAssignedShipments(shipments, user);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredAssigned = assigned.filter(s => 
+    s.referenceCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    s.originCountry.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.destinationPort.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.exporterName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (s.importerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    s.status.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleConfirmPickup = (shipmentId: string) => {
     setLoadingId(shipmentId);
@@ -632,17 +818,39 @@ export function TruckerDashboard({ shipments, user, onViewShipment, onUpdate }: 
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Freight Logistics Carrier</span>
-          <div className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <Truck className="text-[#1A66FF]" size={18} />
-            <span>{user.companyName}</span>
+      <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">My Operating Node:</span>
+              <strong className="text-xs text-[#1A66FF] font-mono">{user.companyName} ({user.role.replace(/_/g, ' ')})</strong>
+            </div>
+            <h3 className="font-bold text-[#001240] text-sm">Dashboard Overview & Booking Finder</h3>
+            <p className="text-xs text-slate-500">Quickly find and record logistics actions for active trade bookings assigned to your terminal.</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-mono font-bold bg-[#FAFAF7] text-slate-600 border border-[#E5E3DA] px-2.5 py-1 rounded-full">
+              {assigned.length} Assigned {assigned.length === 1 ? 'Job' : 'Jobs'}
+            </span>
+            {searchTerm && (
+              <span className="text-xs font-mono font-bold bg-blue-50 text-[#1A66FF] border border-[#C8DBFF] px-2.5 py-1 rounded-full">
+                {filteredAssigned.length} Found
+              </span>
+            )}
           </div>
         </div>
-        <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Assigned Dispatches</span>
-          <div className="text-2xl font-extrabold text-[#001240]">{assigned.length}</div>
+        
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <Search size={16} />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search bookings by reference, description, port, country, exporter, importer or status..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#E5E3DA] bg-[#FAFAF7] hover:bg-white focus:bg-white focus:ring-1 focus:ring-[#1A66FF] focus:border-[#1A66FF] transition text-xs text-slate-800 placeholder-slate-400"
+          />
         </div>
       </div>
 
@@ -655,6 +863,8 @@ export function TruckerDashboard({ shipments, user, onViewShipment, onUpdate }: 
         <div className="overflow-x-auto">
           {assigned.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-xs">No road dispatches coordinates assigned to your trucking fleet.</div>
+          ) : filteredAssigned.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 text-xs font-semibold">No bookings match your search term: "{searchTerm}"</div>
           ) : (
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FAFAF7] uppercase font-mono tracking-wider font-bold text-slate-500 border-b border-[#E5E3DA]">
@@ -667,40 +877,54 @@ export function TruckerDashboard({ shipments, user, onViewShipment, onUpdate }: 
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E3DA]">
-                {assigned.map((s) => (
-                  <tr key={s.id} className="hover:bg-[#FAFAF7]/50">
-                    <td className="py-4 px-4 font-mono font-bold text-slate-800">{s.referenceCode}</td>
-                    <td className="py-4 px-3 font-semibold text-slate-600">{s.importerName} Warehouse Terminal</td>
-                    <td className="py-4 px-3 text-slate-500">{s.description}</td>
-                    <td className="py-4 px-3">{getStatusBadge(s.status)}</td>
-                    <td className="py-4 px-3 text-right space-x-2">
-                      {s.status === ShipmentStatus.CUSTOMS_CLEARANCE && (
+                {filteredAssigned.map((s) => {
+                  const checkPickup = canLogMilestone(s, MilestoneType.CARGO_PICKED_UP);
+                  const checkDelivery = canLogMilestone(s, MilestoneType.DELIVERED);
+                  return (
+                    <tr key={s.id} className="hover:bg-[#FAFAF7]/50">
+                      <td className="py-4 px-4 font-mono font-bold text-slate-800">{s.referenceCode}</td>
+                      <td className="py-4 px-3 font-semibold text-slate-600">{s.importerName} Warehouse Terminal</td>
+                      <td className="py-4 px-3 text-slate-500">{s.description}</td>
+                      <td className="py-4 px-3">{getStatusBadge(s.status)}</td>
+                      <td className="py-4 px-3 text-right space-x-2">
+                        {s.status === ShipmentStatus.CUSTOMS_CLEARANCE && (
+                          <button
+                            onClick={() => checkPickup.allowed && handleConfirmPickup(s.id)}
+                            disabled={loadingId !== null || !checkPickup.allowed}
+                            title={checkPickup.reason}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                              checkPickup.allowed
+                                ? 'bg-[#1A66FF] text-white hover:bg-[#0047E0]'
+                                : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                            }`}
+                          >
+                            {checkPickup.allowed ? 'Confirm Cargo Pickup' : '🔒 Pickup Locked'}
+                          </button>
+                        )}
+                        {s.status === ShipmentStatus.OUT_FOR_DELIVERY && (
+                          <button
+                            onClick={() => checkDelivery.allowed && handleConfirmFinalDelivery(s.id)}
+                            disabled={loadingId !== null || !checkDelivery.allowed}
+                            title={checkDelivery.reason}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition animate-pulse ${
+                              checkDelivery.allowed
+                                ? 'bg-teal-500 text-white hover:bg-teal-600'
+                                : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed animate-none'
+                            }`}
+                          >
+                            {checkDelivery.allowed ? 'Confirm Final Delivery' : '🔒 Delivery Locked'}
+                          </button>
+                        )}
                         <button
-                          onClick={() => handleConfirmPickup(s.id)}
-                          disabled={loadingId !== null}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#1A66FF] text-white hover:bg-[#0047E0] transition text-xs font-semibold"
+                          onClick={() => onViewShipment(s.id)}
+                          className="px-2.5 py-1.5 border border-[#E5E3DA] bg-white hover:bg-[#F2F1EC] text-slate-600 rounded-lg font-bold text-xs"
                         >
-                          Confirm Cargo Pickup
+                          View Routing
                         </button>
-                      )}
-                      {s.status === ShipmentStatus.OUT_FOR_DELIVERY && (
-                        <button
-                          onClick={() => handleConfirmFinalDelivery(s.id)}
-                          disabled={loadingId !== null}
-                          className="px-2.5 py-1.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 transition text-xs font-semibold animate-pulse"
-                        >
-                          Confirm Final Delivery
-                        </button>
-                      )}
-                      <button
-                        onClick={() => onViewShipment(s.id)}
-                        className="px-2.5 py-1.5 border border-[#E5E3DA] bg-white hover:bg-[#F2F1EC] text-slate-600 rounded-lg font-bold text-xs"
-                      >
-                        View Routing
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -716,6 +940,17 @@ export function InspectorDashboard({ shipments, user, onViewShipment, onUpdate }
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [reportText, setReportText] = useState('');
   const [showReportModal, setShowReportModal] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredAssigned = assigned.filter(s => 
+    s.referenceCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    s.originCountry.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.destinationPort.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.exporterName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (s.importerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    s.status.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handlePostInspectionReport = (shipmentId: string) => {
     if (!reportText.trim()) return;
@@ -757,17 +992,39 @@ export function InspectorDashboard({ shipments, user, onViewShipment, onUpdate }
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Underwriter & Cargo Inspector</span>
-          <div className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <ClipboardList className="text-indigo-600" size={18} />
-            <span>{user.companyName}</span>
+      <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">My Operating Node:</span>
+              <strong className="text-xs text-[#1A66FF] font-mono">{user.companyName} ({user.role.replace(/_/g, ' ')})</strong>
+            </div>
+            <h3 className="font-bold text-[#001240] text-sm">Dashboard Overview & Booking Finder</h3>
+            <p className="text-xs text-slate-500">Quickly find and record logistics actions for active trade bookings assigned to your terminal.</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-mono font-bold bg-[#FAFAF7] text-slate-600 border border-[#E5E3DA] px-2.5 py-1 rounded-full">
+              {assigned.length} Assigned {assigned.length === 1 ? 'Job' : 'Jobs'}
+            </span>
+            {searchTerm && (
+              <span className="text-xs font-mono font-bold bg-blue-50 text-[#1A66FF] border border-[#C8DBFF] px-2.5 py-1 rounded-full">
+                {filteredAssigned.length} Found
+              </span>
+            )}
           </div>
         </div>
-        <div className="bg-white border border-[#E5E3DA] rounded-xl p-5 shadow-sm space-y-1">
-          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Scheduled Audits</span>
-          <div className="text-2xl font-extrabold text-[#001240]">{assigned.length}</div>
+        
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <Search size={16} />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search bookings by reference, description, port, country, exporter, importer or status..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#E5E3DA] bg-[#FAFAF7] hover:bg-white focus:bg-white focus:ring-1 focus:ring-[#1A66FF] focus:border-[#1A66FF] transition text-xs text-slate-800 placeholder-slate-400"
+          />
         </div>
       </div>
 
@@ -780,6 +1037,8 @@ export function InspectorDashboard({ shipments, user, onViewShipment, onUpdate }
         <div className="overflow-x-auto">
           {assigned.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-xs">No audits scheduled for your inspection branch.</div>
+          ) : filteredAssigned.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 text-xs font-semibold">No bookings match your search term: "{searchTerm}"</div>
           ) : (
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FAFAF7] uppercase font-mono tracking-wider font-bold text-slate-500 border-b border-[#E5E3DA]">
@@ -792,41 +1051,55 @@ export function InspectorDashboard({ shipments, user, onViewShipment, onUpdate }
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E3DA]">
-                {assigned.map((s) => (
-                  <tr key={s.id} className="hover:bg-[#FAFAF7]/50">
-                    <td className="py-4 px-4 font-mono font-bold text-slate-800">{s.referenceCode}</td>
-                    <td className="py-4 px-3 font-semibold text-slate-600">
-                      {s.originCountry} &rsaquo; {s.destinationPort}
-                    </td>
+                {filteredAssigned.map((s) => {
+                  const checkOffloaded = canLogMilestone(s, MilestoneType.CONTAINER_OFFLOADED);
+                  return (
+                    <tr key={s.id} className="hover:bg-[#FAFAF7]/50">
+                      <td className="py-4 px-4 font-mono font-bold text-slate-800">{s.referenceCode}</td>
+                      <td className="py-4 px-3 font-semibold text-slate-600">
+                        {s.originCountry} &rsaquo; {s.destinationPort}
+                      </td>
                     <td className="py-4 px-3 font-semibold text-slate-500 font-mono">ISO-9001 Conformity Audit</td>
                     <td className="py-4 px-3">{getStatusBadge(s.status)}</td>
-                    <td className="py-4 px-3 text-right space-x-2">
-                      {s.status !== ShipmentStatus.DELIVERED && s.status !== ShipmentStatus.CANCELLED && (
-                        <>
-                          <button
-                            onClick={() => setShowReportModal(s.id)}
-                            className="px-2.5 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white transition text-xs font-semibold"
-                          >
-                            Submit Quality Certificate
-                          </button>
-                          <button
-                            onClick={() => handleDisputeMilestone(s.id)}
-                            disabled={loadingId !== null}
-                            className="px-2.5 py-1.5 rounded-lg border border-[#FF5C35] hover:bg-red-50 text-[#CC3A1C] transition text-xs font-semibold"
-                          >
-                            Raise Inspection Hold ⚠️
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => onViewShipment(s.id)}
-                        className="px-2.5 py-1.5 border border-[#E5E3DA] bg-white hover:bg-[#F2F1EC] text-slate-600 rounded-lg font-bold text-xs"
-                      >
-                        Audit Details
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="py-4 px-3 text-right space-x-2">
+                        {s.status !== ShipmentStatus.DELIVERED && s.status !== ShipmentStatus.CANCELLED && (
+                          <>
+                            <button
+                              onClick={() => checkOffloaded.allowed && setShowReportModal(s.id)}
+                              disabled={loadingId !== null || !checkOffloaded.allowed}
+                              title={checkOffloaded.reason}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                                checkOffloaded.allowed
+                                  ? 'bg-teal-500 hover:bg-teal-600 text-white'
+                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed font-medium'
+                              }`}
+                            >
+                              {checkOffloaded.allowed ? 'Submit Quality Certificate' : '🔒 Audit Locked'}
+                            </button>
+                            <button
+                              onClick={() => checkOffloaded.allowed && handleDisputeMilestone(s.id)}
+                              disabled={loadingId !== null || !checkOffloaded.allowed}
+                              title={checkOffloaded.reason}
+                              className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${
+                                checkOffloaded.allowed
+                                  ? 'border-[#FF5C35] hover:bg-red-50 text-[#CC3A1C]'
+                                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed text-slate-400'
+                              }`}
+                            >
+                              {checkOffloaded.allowed ? 'Raise Inspection Hold ⚠️' : '🔒 Hold Locked'}
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => onViewShipment(s.id)}
+                          className="px-2.5 py-1.5 border border-[#E5E3DA] bg-white hover:bg-[#F2F1EC] text-slate-600 rounded-lg font-bold text-xs"
+                        >
+                          Audit Details
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
