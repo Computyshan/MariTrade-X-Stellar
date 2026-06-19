@@ -125,6 +125,9 @@ export type Shipment = {
   totalValueUSD: number;
   escrowStatus: EscrowStatus;
   stellarEscrowId?: string;
+  escrowFundedByEmail?: string;
+  escrowFundedByName?: string;
+  escrowFundedByRole?: UserRole;
   escrowAmountUSD: number;
   estimatedArrival?: string;
   createdAt: string;

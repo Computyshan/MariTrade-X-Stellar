@@ -14,6 +14,7 @@ import {
   TruckerDashboard, 
   InspectorDashboard 
 } from './LogisticsDashboards';
+import AdminDashboard from './AdminDashboard';
 
 interface DashboardHomeProps {
   shipments: Shipment[];
@@ -98,6 +99,13 @@ export default function DashboardHome({ shipments, user, onViewShipment, onNavig
   };
 
   if (user) {
+    if (user.role === UserRole.ADMIN) {
+      return (
+        <div id="dashboard-home" className="space-y-8 animate-fade-in p-8 bg-[#FAFAF7] flex-1 overflow-y-auto">
+          <AdminDashboard shipments={shipments} user={user} onViewShipment={onViewShipment} onUpdate={onUpdate} />
+        </div>
+      );
+    }
     if (user.role === UserRole.PORT_AUTHORITY) {
       return (
         <div id="dashboard-home" className="space-y-8 animate-fade-in p-8 bg-[#FAFAF7] flex-1 overflow-y-auto">

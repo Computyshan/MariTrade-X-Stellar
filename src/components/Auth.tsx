@@ -115,6 +115,9 @@ export default function Auth({ initialView, onNavigate, onLoginSuccess }: AuthPr
     } else if (selectedRole === UserRole.TRUCKER) {
       setCompanyName('PH Express Trucking');
       setFullName('Driver Danilo');
+    } else if (selectedRole === UserRole.ADMIN) {
+      setCompanyName('BOC System Administration Hub');
+      setFullName('Administrator Chief');
     }
   };
 
@@ -199,6 +202,23 @@ export default function Auth({ initialView, onNavigate, onLoginSuccess }: AuthPr
             <div className="border-t border-[#E5E3DA] pt-4 mt-4">
               <span className="block text-[10px] uppercase font-mono text-center text-slate-400 font-bold mb-3">Instant Demo Account Presets</span>
               <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('admin@maritrade.gov.ph');
+                    setPassword('maritrade2026');
+                    setCompanyName('BOC System Administration Hub');
+                    setFullName('Administrator Chief');
+                    setRole(UserRole.ADMIN);
+                  }}
+                  className="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-900 border border-[#0BAFB0]/40 text-left text-[11px] text-white font-medium flex flex-col gap-1 justify-between transition col-span-2 shadow-xs"
+                >
+                  <span className="font-bold text-[#0BAFB0] flex items-center gap-1">
+                    👑 System Administrator Node (Secure Backdoor)
+                  </span>
+                  <span className="text-[9px] text-slate-300 font-mono font-bold">admin@maritrade.gov.ph</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -398,6 +418,7 @@ export default function Auth({ initialView, onNavigate, onLoginSuccess }: AuthPr
                   <option value={UserRole.WAREHOUSE}>Warehouse Management</option>
                   <option value={UserRole.PORT_AUTHORITY}>Government Port Authority</option>
                   <option value={UserRole.TRUCKER}>Local Trucker Logistical</option>
+                  <option value={UserRole.ADMIN}>Platform Administrator</option>
                 </select>
               </div>
             </div>

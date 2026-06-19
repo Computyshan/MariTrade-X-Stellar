@@ -5,8 +5,8 @@
 
 import React, { useState } from 'react';
 import { Shipment, DocumentType, User } from '../types';
-import { FileIcon, Search, Download, Plus, CheckCircle2, AlertCircle } from 'lucide-react';
-import { uploadDocumentInStorage } from '../utils/storage';
+import { FileIcon, Search, Download, Plus, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
+import { uploadDocumentInStorage, deleteDocumentInStorage } from '../utils/storage';
 
 interface DocumentsTabProps {
   shipments: Shipment[];
@@ -226,7 +226,21 @@ export default function DocumentsTab({ shipments, user, onUpdate }: DocumentsTab
                   </div>
 
                   {/* Actions summary */}
-                  <div className="flex justify-end pt-2.5 border-t border-[#E5E3DA]">
+                  <div className="flex justify-end gap-1.5 pt-2.5 border-t border-[#E5E3DA]">
+                    {user?.role === 'ADMIN' && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`ADMIN PRIVILEGE WARNING:\nAre you absolutely sure you want to permanently delete and purge "${doc.fileName}"?\nThis action will update the decentralized ledger index.`)) {
+                            deleteDocumentInStorage(doc.shipmentId, doc.id);
+                            if (onUpdate) onUpdate();
+                          }
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-[10px] font-bold text-red-700 flex items-center gap-1 cursor-pointer transition"
+                      >
+                        <Trash2 size={11} />
+                        <span>Delete File</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => alert(`Broadcasting and downloading raw network binary: ${doc.fileName}`)}
                       className="px-2.5 py-1.5 rounded-lg border border-[#E5E3DA] bg-white hover:bg-[#FAFAF7] text-[10px] font-bold text-slate-700 flex items-center gap-1 cursor-pointer transition"

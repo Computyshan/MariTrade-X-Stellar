@@ -552,3 +552,42 @@ export function uploadDocumentInStorage(shipmentId: string, type: DocumentType, 
   saveStoredShipments(currentShipments);
   return updatedShipment;
 }
+
+export function deleteDocumentInStorage(shipmentId: string, documentId: string): null | Shipment {
+  const currentShipments = getStoredShipments();
+  const index = currentShipments.findIndex((s) => s.id === shipmentId);
+  if (index === -1) return null;
+
+  const currentShipment = currentShipments[index];
+  const finalDocs = currentShipment.documents.filter((d) => d.id !== documentId);
+
+  // Re-evaluate isLatest flag for the remaining documents of each type
+  const docTypes = Array.from(new Set(finalDocs.map((d) => d.type)));
+  const updatedDocs = finalDocs.map((d) => {
+    // For each document, if it is the highest version of its type, mark as isLatest
+    const docsOfType = finalDocs.filter((x) => x.type === d.type);
+    const maxVersion = Math.max(...docsOfType.map((x) => x.version));
+    return { ...d, isLatest: d.version === maxVersion };
+  });
+
+  const updatedShipment = {
+    ...currentShipment,
+    documents: updatedDocs,
+    updatedAt: new Date().toISOString()
+  };
+
+  currentShipments[index] = updatedShipment;
+  saveStoredShipments(currentShipments);
+  return updatedShipment;
+}
+
+export function deleteShipmentInStorage(shipmentId: string): boolean {
+  const currentShipments = getStoredShipments();
+  const index = currentShipments.findIndex((s) => s.id === shipmentId);
+  if (index === -1) return false;
+
+  currentShipments.splice(index, 1);
+  saveStoredShipments(currentShipments);
+  return true;
+}
+

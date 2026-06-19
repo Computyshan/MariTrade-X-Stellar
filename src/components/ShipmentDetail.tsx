@@ -31,6 +31,61 @@ import {
   Loader2
 } from 'lucide-react';
 
+const milestonePendingHints: Record<MilestoneType, { nextAction: string; owner: string }> = {
+  [MilestoneType.BOOKING_CONFIRMED]: {
+    nextAction: "The Exporter needs to confirm booking details with the freight carrier shipping line and secure the reservation space.",
+    owner: "Exporter / Shipping Line"
+  },
+  [MilestoneType.CARGO_RECEIVED_WAREHOUSE]: {
+    nextAction: "Transfer the goods to the designated loading warehouse to undergo physical verification and cargo volume dimensions check.",
+    owner: "Exporter / Warehouse Hub"
+  },
+  [MilestoneType.CARGO_PACKED_READY]: {
+    nextAction: "Warehouse logicians must secure the cargo pallets into standard containers, apply the high-security door locks, and hand off to drayage.",
+    owner: "Warehouse Operators"
+  },
+  [MilestoneType.VESSEL_DEPARTED]: {
+    nextAction: "Wait for the designated maritime cargo vessel to depart the embarkation terminal yard and initiate transit across sea lanes.",
+    owner: "Shipping Line / Marine Captain"
+  },
+  [MilestoneType.CONTAINER_LOADED]: {
+    nextAction: "Gantry hoist operators must confirm the physical positioning of the sealed container on the vessel's bay deck map.",
+    owner: "Origin Port Terminal Authority"
+  },
+  [MilestoneType.VESSEL_ARRIVED_DESTINATION]: {
+    nextAction: "Vessel safe docking, custom harbor pilot mooring, and bulk container discharge at the destination yard.",
+    owner: "Government Port Authority"
+  },
+  [MilestoneType.CUSTOMS_ENTRY_FILED]: {
+    nextAction: "Licensed customs broker must prepare and submit the Single Administrative Document (SAD) with linked bills of lading to the Bureau of Customs.",
+    owner: "Customs Broker"
+  },
+  [MilestoneType.CUSTOMS_CLEARED]: {
+    nextAction: "BOC assessors must verify duty deposits, complete product inspections if flagged, and issue the final gate release authorization.",
+    owner: "Bureau of Customs (BOC)"
+  },
+  [MilestoneType.CARGO_PICKED_UP]: {
+    nextAction: "A verified local trucker must obtain port entry credentials, pick up the container chassis, and start overland delivery drayage.",
+    owner: "Local Trucker Logistical"
+  },
+  [MilestoneType.DELIVERED]: {
+    nextAction: "Unload the container at the importer's terminal warehouse, conduct an audit of physical seal integrity, and sign the official receipt log.",
+    owner: "Importer / Receiving Warehousing"
+  },
+  [MilestoneType.BILL_OF_LADING_ISSUED]: {
+    nextAction: "The carrier drafts and releases the official maritime bill of lading documents establishing clean receipt of cargo aboard.",
+    owner: "Shipping Line"
+  },
+  [MilestoneType.PORT_CLEARED_ORIGIN]: {
+    nextAction: "Verify custom export manifests, satisfy port taxations, and approve vessel clearance keys to depart terminal waters.",
+    owner: "Government Port Authority"
+  },
+  [MilestoneType.CONTAINER_OFFLOADED]: {
+    nextAction: "Port yard cranes discharge container onto transient flatbed trailers or yard location stack sectors.",
+    owner: "Port Operators"
+  }
+};
+
 interface ShipmentDetailProps {
   shipmentId: string;
   user: User | null;
@@ -120,6 +175,9 @@ export default function ShipmentDetail({ shipmentId, user, onBack, onUpdate }: S
       const updated = updateShipmentInStorage(activeShipment.id, {
         escrowStatus: EscrowStatus.FUNDED,
         stellarEscrowId: `tx_escrow_${Math.random().toString(16).substring(2, 16)}`,
+        escrowFundedByEmail: user?.email,
+        escrowFundedByName: user?.fullName,
+        escrowFundedByRole: user?.role,
         status: activeShipment.status === ShipmentStatus.PENDING ? ShipmentStatus.CONFIRMED : activeShipment.status
       });
       if (updated) {
@@ -132,6 +190,11 @@ export default function ShipmentDetail({ shipmentId, user, onBack, onUpdate }: S
   };
 
   const handleReleaseEscrow = () => {
+    if (activeShipment.escrowFundedByEmail && activeShipment.escrowFundedByEmail !== user?.email) {
+      triggerToast(`Unauthorized: For fairness, only the specific trading party who funded this escrow (${activeShipment.escrowFundedByName}) is authorized to trigger payments release.`, true);
+      return;
+    }
+
     setReleasingEscrow(true);
     
     // Simulate Stellar final multisig release
@@ -467,7 +530,21 @@ export default function ShipmentDetail({ shipmentId, user, onBack, onUpdate }: S
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-slate-400 font-medium">Verification pending for this shipping leg.</p>
+                      <div className="text-[11px] text-slate-500 bg-[#FAFAF8] border border-[#E5E3DA]/60 p-3 rounded-lg space-y-1.5 leading-normal">
+                        <div className="flex items-center gap-1 font-bold text-amber-700">
+                          <HelpCircle size={12} className="shrink-0" />
+                          <span>Verification Pending</span>
+                        </div>
+                        <p className="text-slate-600 font-medium">
+                          {milestonePendingHints[mType]?.nextAction || "Verification pending for this shipping leg."}
+                        </p>
+                        {milestonePendingHints[mType] && (
+                          <div className="text-[9px] text-slate-400 font-mono flex items-center justify-between pt-1 border-t border-slate-200/50">
+                            <span className="uppercase text-[8px] text-slate-400 font-bold">Scheduled Actor:</span>
+                            <span className="bg-slate-200/60 px-1.5 py-0.5 rounded text-slate-600 font-bold font-mono text-[9px]">{milestonePendingHints[mType].owner}</span>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -525,7 +602,7 @@ export default function ShipmentDetail({ shipmentId, user, onBack, onUpdate }: S
               <div className="space-y-3.5 pt-3">
                 {activeShipment.escrowStatus === EscrowStatus.UNFUNDED && (
                   <div>
-                    {user?.role === UserRole.IMPORTER ? (
+                    {user?.role === UserRole.IMPORTER || user?.role === UserRole.EXPORTER ? (
                       <button
                         id="btn-trigger-fund-escrow"
                         onClick={handleFundEscrow}
@@ -539,13 +616,13 @@ export default function ShipmentDetail({ shipmentId, user, onBack, onUpdate }: S
                           </>
                         ) : (
                           <>
-                            <span>Fund Safe Escrow Ledger</span>
+                            <span>Fund Safe Escrow Ledger ({user.role === UserRole.EXPORTER ? 'Exporter Deposit' : 'Importer Deposit'})</span>
                           </>
                         )}
                       </button>
                     ) : (
                       <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 font-medium text-center italic">
-                        🔴 Awaiting Importer to deposit and fund the safety Stellar pool.
+                        🔴 Awaiting Importer or Exporter to deposit and fund the safety Stellar pool.
                       </div>
                     )}
                   </div>
@@ -553,33 +630,68 @@ export default function ShipmentDetail({ shipmentId, user, onBack, onUpdate }: S
 
                 {activeShipment.escrowStatus === EscrowStatus.FUNDED && (
                   <div className="space-y-3">
-                    <div className="p-3 bg-[#EEF4FF] border border-[#C8DBFF] text-[11px] text-[#0047E0] rounded-lg">
-                      🔒 Escrow funds are locked securely under Stellar multisig contracts. Importers seal final verification upon successful trucker arrival to trigger dispatch.
+                    <div className="p-3 bg-[#EEF4FF] border border-[#C8DBFF] text-[11px] text-[#0047E0] rounded-lg space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>
+                        <strong className="text-indigo-800">🔒 Stellar Multisig Escrow Locked</strong>
+                      </div>
+                      
+                      {activeShipment.escrowFundedByName ? (
+                        <p className="text-[10px] text-slate-600 leading-normal">
+                          Funded by: <span className="bg-white px-2 py-0.5 rounded border border-indigo-200 font-mono font-bold text-indigo-700">{activeShipment.escrowFundedByName} ({activeShipment.escrowFundedByRole})</span>
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-slate-500 italic">Legacy record (unspecified trading partner).</p>
+                      )}
+
+                      <p className="text-[10px] text-slate-500 italic border-t border-indigo-100/50 pt-1">
+                        ⚠️ **FAIRNESS REGULATORY POLICY**: Whoever between the trading parties funds this escrow is the ONLY one authorized for subsequent payment release.
+                      </p>
                     </div>
                     
-                    {/* Importer role release tool */}
+                    {/* Importer/Exporter release tool */}
                     {user?.role === UserRole.IMPORTER || user?.role === UserRole.EXPORTER ? (
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          id="btn-dispute-escrow"
-                          onClick={handleDisputeEscrow}
-                          disabled={disputingEscrow}
-                          className="py-2.5 rounded-lg border border-[#FF5C35]/30 hover:bg-[#FFF2EE] text-[#CC3A1C] text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          File Dispute
-                        </button>
-                        <button
-                          id="btn-release-escrow"
-                          onClick={handleReleaseEscrow}
-                          disabled={releasingEscrow}
-                          className="py-2.5 rounded-lg bg-[#0BAFB0] hover:bg-[#078384] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-teal-500/10"
-                        >
-                          {releasingEscrow ? (
-                            <Loader2 className="animate-spin" size={14} />
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            id="btn-dispute-escrow"
+                            onClick={handleDisputeEscrow}
+                            disabled={disputingEscrow}
+                            className="py-2.5 rounded-lg border border-[#FF5C35]/30 hover:bg-[#FFF2EE] text-[#CC3A1C] text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            File Dispute
+                          </button>
+                          
+                          {activeShipment.escrowFundedByEmail && activeShipment.escrowFundedByEmail !== user?.email ? (
+                            <button
+                              id="btn-release-escrow-disabled"
+                              disabled
+                              className="py-2.5 rounded-lg bg-slate-200 text-slate-400 border border-slate-300 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-not-allowed"
+                              title={`Only the funding party (${activeShipment.escrowFundedByName}) has authorized dispatch control.`}
+                            >
+                              Release Locked
+                            </button>
                           ) : (
-                            <span>Release Payments ✓</span>
+                            <button
+                              id="btn-release-escrow"
+                              onClick={handleReleaseEscrow}
+                              disabled={releasingEscrow}
+                              className="py-2.5 rounded-lg bg-[#0BAFB0] hover:bg-[#078384] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-teal-500/10"
+                            >
+                              {releasingEscrow ? (
+                                <Loader2 className="animate-spin" size={14} />
+                              ) : (
+                                <span>Release Payments ✓</span>
+                              )}
+                            </button>
                           )}
-                        </button>
+                        </div>
+
+                        {activeShipment.escrowFundedByEmail && activeShipment.escrowFundedByEmail !== user?.email && (
+                          <p className="text-center text-[10px] font-semibold text-rose-600 font-mono italic">
+                            🔒 Control blocked: Depositor was {activeShipment.escrowFundedByName}.
+                          </p>
+                        )}
                       </div>
                     ) : (
                       <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 font-medium text-center italic">

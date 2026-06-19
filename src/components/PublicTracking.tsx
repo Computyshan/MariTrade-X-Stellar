@@ -6,7 +6,50 @@
 import React, { useState } from 'react';
 import { Shipment, ShipmentStatus, MilestoneType } from '../types';
 import { getStoredShipments } from '../utils/storage';
-import { Search, MapPin, Compass, Ship, Anchor, CheckCircle2 } from 'lucide-react';
+import { Search, MapPin, Compass, Ship, Anchor, CheckCircle2, HelpCircle } from 'lucide-react';
+
+const milestonePendingHints: Record<string, { nextAction: string; owner: string }> = {
+  [MilestoneType.BOOKING_CONFIRMED]: {
+    nextAction: "The Exporter needs to confirm booking details with the freight carrier shipping line and secure the reservation space.",
+    owner: "Exporter / Shipping Line"
+  },
+  [MilestoneType.CARGO_RECEIVED_WAREHOUSE]: {
+    nextAction: "Transfer the goods to the designated loading warehouse to undergo physical verification and cargo volume dimensions check.",
+    owner: "Exporter / Warehouse Hub"
+  },
+  [MilestoneType.CARGO_PACKED_READY]: {
+    nextAction: "Warehouse logicians must secure the cargo pallets into standard containers, apply the high-security door locks, and hand off to drayage.",
+    owner: "Warehouse Operators"
+  },
+  [MilestoneType.VESSEL_DEPARTED]: {
+    nextAction: "Wait for the designated maritime cargo vessel to depart the embarkation terminal yard and initiate transit across sea lanes.",
+    owner: "Shipping Line / Marine Captain"
+  },
+  [MilestoneType.CONTAINER_LOADED]: {
+    nextAction: "Gantry hoist operators must confirm the physical positioning of the sealed container on the vessel's bay deck map.",
+    owner: "Origin Port Terminal Authority"
+  },
+  [MilestoneType.VESSEL_ARRIVED_DESTINATION]: {
+    nextAction: "Vessel safe docking, custom harbor pilot mooring, and bulk container discharge at the destination yard.",
+    owner: "Government Port Authority"
+  },
+  [MilestoneType.CUSTOMS_ENTRY_FILED]: {
+    nextAction: "Licensed customs broker must prepare and submit the Single Administrative Document (SAD) with linked bills of lading to the Bureau of Customs.",
+    owner: "Customs Broker"
+  },
+  [MilestoneType.CUSTOMS_CLEARED]: {
+    nextAction: "BOC assessors must verify duty deposits, complete product inspections if flagged, and issue the final gate release authorization.",
+    owner: "Bureau of Customs (BOC)"
+  },
+  [MilestoneType.CARGO_PICKED_UP]: {
+    nextAction: "A verified local trucker must obtain port entry credentials, pick up the container chassis, and start overland delivery drayage.",
+    owner: "Local Trucker Logistical"
+  },
+  [MilestoneType.DELIVERED]: {
+    nextAction: "Unload the container at the importer's terminal warehouse, conduct an audit of physical seal integrity, and sign the official receipt log.",
+    owner: "Importer / Receiving Warehousing"
+  }
+};
 
 interface PublicTrackingProps {
   initialRefCode?: string;
@@ -179,7 +222,21 @@ export default function PublicTracking({ initialRefCode = '', onNavigateToAuth }
                             ))}
                           </div>
                         ) : (
-                          <p className="text-xs text-slate-400 pl-1 font-medium">Pending log arrival at this point.</p>
+                          <div className="text-[11px] text-slate-500 bg-[#FAFAF8] border border-[#E5E3DA]/60 p-3 rounded-lg space-y-1.5 leading-normal">
+                            <div className="flex items-center gap-1 font-bold text-amber-700">
+                              <HelpCircle size={11} className="shrink-0" />
+                              <span>Verification Pending</span>
+                            </div>
+                            <p className="text-slate-600 font-medium">
+                              {milestonePendingHints[mType]?.nextAction || "Pending log arrival at this point."}
+                            </p>
+                            {milestonePendingHints[mType] && (
+                              <div className="text-[9px] text-slate-400 font-mono flex items-center justify-between pt-1 border-t border-slate-200/50">
+                                <span className="uppercase text-[8px] text-slate-400 font-bold">Scheduled Actor:</span>
+                                <span className="bg-slate-200/60 px-1.5 py-0.5 rounded text-slate-600 font-bold font-mono text-[9px]">{milestonePendingHints[mType].owner}</span>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
