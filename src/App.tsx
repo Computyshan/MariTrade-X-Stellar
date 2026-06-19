@@ -49,12 +49,6 @@ export default function App() {
     
     if (storedUser) {
       setUser(storedUser);
-      // If user has completed onboarding, go directly to dashboard, else onboarding
-      if (storedUser.stellarWallet) {
-        setActivePage('dashboard');
-      } else {
-        setActivePage('onboarding');
-      }
     }
     setShipments(storedShipments);
   }, []);
@@ -135,13 +129,17 @@ export default function App() {
   return (
     <main className="min-h-screen bg-[#FAFAF7] text-slate-900 font-sans">
       
-      {/* 1. PUBLIC LANDING VIEW */}
+       {/* 1. PUBLIC LANDING VIEW */}
       {activePage === 'landing' && (
         <LandingPage 
+          user={user}
           onNavigate={(page) => {
             if (page === 'landing') setActivePage('landing');
             else if (page === 'login') { setActivePage('login'); }
             else if (page === 'register') { setActivePage('register'); }
+            else if (page === 'dashboard') { setActivePage('dashboard'); }
+            else if (page === 'onboarding') { setActivePage('onboarding'); }
+            else if (page === 'logout') { handleLogout(); }
           }} 
           onTrackLookup={handleTrackLookup}
         />

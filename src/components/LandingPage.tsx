@@ -6,13 +6,15 @@
 import React, { useState } from 'react';
 import { Ship, Anchor, ShieldCheck, FileText, ArrowRight, Sparkles, MapPin, Search } from 'lucide-react';
 import { getStoredShipments } from '../utils/storage';
+import { User } from '../types';
 
 interface LandingPageProps {
+  user: User | null;
   onNavigate: (page: string, params?: Record<string, any>) => void;
   onTrackLookup: (refCode: string) => void;
 }
 
-export default function LandingPage({ onNavigate, onTrackLookup }: LandingPageProps) {
+export default function LandingPage({ user, onNavigate, onTrackLookup }: LandingPageProps) {
   const [trackInput, setTrackInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -59,20 +61,44 @@ export default function LandingPage({ onNavigate, onTrackLookup }: LandingPagePr
           </nav>
 
           <div className="flex items-center gap-4">
-            <button 
-              id="btn-login-header"
-              onClick={() => onNavigate('login')}
-              className="text-sm font-semibold text-slate-700 hover:text-[#1A66FF] px-4 py-2 transition-colors cursor-pointer"
-            >
-              Log In
-            </button>
-            <button 
-              id="btn-register-header"
-              onClick={() => onNavigate('register')}
-              className="px-4 py-2 rounded-lg bg-[#1A66FF] hover:bg-[#0047E0] text-white text-sm font-semibold transition-all duration-200 shadow-sm hover:translate-y-[-1px] cursor-pointer"
-            >
-              Register Account &rarr;
-            </button>
+            {user ? (
+              <>
+                <span className="text-xs text-slate-500 hidden sm:inline-block max-w-[150px] truncate">
+                  Logged as: <strong className="text-slate-800">{user.fullName}</strong>
+                </span>
+                <button 
+                  id="btn-dashboard-header"
+                  onClick={() => onNavigate(user.stellarWallet ? 'dashboard' : 'onboarding')}
+                  className="px-4 py-2 rounded-lg bg-[#1A66FF] hover:bg-[#0047E0] text-white text-sm font-semibold transition-all duration-200 cursor-pointer"
+                >
+                  Go to Console &rarr;
+                </button>
+                <button 
+                  id="btn-logout-header"
+                  onClick={() => onNavigate('logout')}
+                  className="text-sm font-semibold text-rose-600 hover:text-rose-700 px-3 py-2 transition-colors cursor-pointer"
+                >
+                  Log Out
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  id="btn-login-header"
+                  onClick={() => onNavigate('login')}
+                  className="text-sm font-semibold text-slate-700 hover:text-[#1A66FF] px-4 py-2 transition-colors cursor-pointer"
+                >
+                  Log In
+                </button>
+                <button 
+                  id="btn-register-header"
+                  onClick={() => onNavigate('register')}
+                  className="px-4 py-2 rounded-lg bg-[#1A66FF] hover:bg-[#0047E0] text-white text-sm font-semibold transition-all duration-200 shadow-sm hover:translate-y-[-1px] cursor-pointer"
+                >
+                  Register Account &rarr;
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -100,14 +126,25 @@ export default function LandingPage({ onNavigate, onTrackLookup }: LandingPagePr
             
             {/* Action Bar */}
             <div className="flex flex-col sm:flex-row gap-4 mt-2">
-              <button 
-                id="btn-hero-cta"
-                onClick={() => onNavigate('register')}
-                className="px-6 py-4 rounded-lg bg-[#1A66FF] hover:bg-[#0047E0] text-white font-semibold transition-all shadow-lg shadow-blue-500/10 flex items-center justify-between gap-3 text-center cursor-pointer"
-              >
-                <span>Start Importing Smarter</span>
-                <ArrowRight size={18} />
-              </button>
+              {user ? (
+                <button 
+                  id="btn-hero-cta"
+                  onClick={() => onNavigate(user.stellarWallet ? 'dashboard' : 'onboarding')}
+                  className="px-6 py-4 rounded-lg bg-[#1A66FF] hover:bg-[#0047E0] text-white font-semibold transition-all shadow-lg shadow-blue-500/10 flex items-center justify-between gap-3 text-center cursor-pointer"
+                >
+                  <span>Launch Operations Console</span>
+                  <ArrowRight size={18} />
+                </button>
+              ) : (
+                <button 
+                  id="btn-hero-cta"
+                  onClick={() => onNavigate('register')}
+                  className="px-6 py-4 rounded-lg bg-[#1A66FF] hover:bg-[#0047E0] text-white font-semibold transition-all shadow-lg shadow-blue-500/10 flex items-center justify-between gap-3 text-center cursor-pointer"
+                >
+                  <span>Start Importing Smarter</span>
+                  <ArrowRight size={18} />
+                </button>
+              )}
               
               <a 
                 href="#demo-section" 
