@@ -1,0 +1,6 @@
+{
+  "name": "MariTrade",
+  "description": "Digital shipping tracker and Stellar escrow platform for Filipino SME importers",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
