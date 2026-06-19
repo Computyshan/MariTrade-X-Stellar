@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Run and deploy your AI Studio app
 
 This contains everything you need to run your app locally.
@@ -18,4 +17,4 @@ View your app in AI Studio: https://ai.studio/apps/a550f56a-3ebb-4943-9a4f-e44b5
 =======
 # MariTrade-X-Stellar
 A Digital shipping tracker platform that tracks shipping from manufacturers to importers overseas, Stellar acts as a third-party escrow settlement for monetary assurance.
->>>>>>> 932d537fc25828d9d03dc7fc366dd444e7759229
+
