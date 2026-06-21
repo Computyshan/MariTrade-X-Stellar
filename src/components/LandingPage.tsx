@@ -435,7 +435,7 @@ export default function LandingPage({ user, onNavigate, onTrackLookup }: Landing
             <h5 className="font-bold text-white text-sm uppercase tracking-wider mb-4 font-mono">Philippine Trade Links</h5>
             <ul className="space-y-2.5 text-xs text-slate-400">
               <li><a href="https://customs.gov.ph" target="_blank" rel="noreferrer" className="hover:text-white">Bureau of Customs (BOC)</a></li>
-              <li><a href="https://www.dti.gov.ph/" target="_blank" rel="noreferrer" className="hover:text-white">Department of Trade (DTI)</a></li>
+              <li><a href="https://dti.gov.ph" target="_blank" rel="noreferrer" className="hover:text-white">Department of Trade (DTI)</a></li>
               <li><span className="block text-slate-500">Stellar Stellar Chain Mainnet Active</span></li>
               <li><span className="block text-slate-500 font-mono text-[10px]">v1.2.0-SME-Beta</span></li>
             </ul>

@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Shipment, DocumentType, User } from '../types';
-import { FileIcon, Search, Download, Plus, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
+import { FileIcon, Search, Download, Plus, CheckCircle2, AlertCircle, Trash2, Lock } from 'lucide-react';
 import { uploadDocumentInStorage, deleteDocumentInStorage } from '../utils/storage';
 
 interface DocumentsTabProps {
@@ -96,7 +96,29 @@ export default function DocumentsTab({ shipments, user, onUpdate }: DocumentsTab
     }, 1500);
   };
 
-  const isTradeParty = user?.role === 'IMPORTER' || user?.role === 'EXPORTER' || user?.role === 'CUSTOMS_BROKER';
+  const isTradePartyUser = user?.role === 'IMPORTER' || user?.role === 'EXPORTER' || user?.role === 'ADMIN';
+  const isCustomsBroker = user?.role === 'CUSTOMS_BROKER';
+  const hasAccess = isTradePartyUser || isCustomsBroker;
+  const isTradeParty = isTradePartyUser; // Only Trade Party can upload / compile
+
+  if (!hasAccess) {
+    return (
+      <div id="documents-restricted" className="p-8 bg-sand-50 flex-1 flex flex-col items-center justify-center text-center animate-fade-in">
+        <div className="w-16 h-16 rounded-full bg-coral-50 border border-coral-400/20 text-coral-400 flex items-center justify-center mb-4">
+          <Lock size={28} />
+        </div>
+        <h2 className="text-lg font-bold text-maritime-900">BOC Documents Access Restricted</h2>
+        <span className="text-[10px] uppercase font-mono tracking-widest text-coral-600 font-bold mt-1.5 block">Regulatory Security Guard</span>
+        <p className="text-xs text-slate-500 max-w-sm mt-3 leading-relaxed">
+          Only Trade Parties (SME Importers & Exporters) and authorized Customs Brokers have certified ledger credentials to inspect or download files in the Bureau of Customs Document Center.
+        </p>
+        <div className="mt-6 p-4 bg-white border border-sand-200 rounded-xl text-[11px] font-mono text-slate-400 max-w-xs">
+          <span>Active Role Node:</span>
+          <strong className="block text-slate-700 uppercase mt-0.5">{user?.role?.replace(/_/g, ' ')}</strong>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="documents-tab" className="space-y-6 animate-fade-in p-8 bg-[#FAFAF7] flex-1 overflow-y-auto">
